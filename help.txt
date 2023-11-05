@@ -1,0 +1,29 @@
+\[ `HELP v\.5\.4` *\:* `2023\.06\.05` \]
+
+/help — show this very message\.
+
+/channel — enter *setting channel mode*\. Before entering this mode you __*have to*__ add this bot to *your channel*\. Also, you __*have to*__ let the bot send new posts\.
+
+Then, in this mode you should forward a message from __*your channel*__ \(*do not forward other channels' posts\!*\) to this chat\. This way bot *will remember* your channel\.
+
+_*Any text message*_ — bot will ignore it, unless there's a twitter or pixiv link in it, that could be parsed\.
+
+If you send _*several*_ links at once in one message, *all twitter links will be parsed*, but __*pixiv links will not*__\.
+
+\[ `TOGGLES` \]
+
+/forward \(_default_\: *off*\) — toggle forwarding messages to your channel\. Turn off for saving content\.
+
+/reply \(_default_\: *on*\) — toggle replying to your messages with the same content that will be posted to your channel\.
+
+/media \(_default_\: *off*\) — toggle replying to the post with twitter video/gif, if there's one\.
+
+\[ `OTHER COMMANDS` \]
+
+/pixiv\_style — cycle pixiv post styles\. Only *6 styles* are available\.
+
+/twitter\_style — cycle twitter post styles\. Only *4 styles* are available\.
+
+/cancel — cancel current operation\. *Use it in cases when you want to shut this bot up*\.
+
+In any case, *please, don't bully Yaminui\-chan*\! 💫 \~
