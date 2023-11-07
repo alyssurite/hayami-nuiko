@@ -16,13 +16,13 @@ from telegram.ext import (
 )
 
 # bot states and everything else
-from .bot import READ_TIMEOUT, WRITE_TIMEOUT, BotMode, BotState, on_bot_init, on_bot_stop
+from ..bot import READ_TIMEOUT, WRITE_TIMEOUT, BotState, on_bot_init, on_bot_stop
 
 # bot query
-from .bot.answer_query import answer_query
+from ..bot.answer_query import answer_query
 
 # bot commands
-from .bot.commands import (
+from ..bot.commands import (
     command_cancel,
     command_channel,
     command_forward,
@@ -35,24 +35,20 @@ from .bot.commands import (
 )
 
 # bot filters
-from .bot.filters import filter_out
+from ..bot.filters import filter_out
 
 # bot functions
-from .bot.functions import handle_post, universal
+from ..bot.functions import handle_post, universal
 
 # bot helpers
-from .bot.helpers import channel_check
+from ..bot.helpers import channel_check
 
 # get logger
 log = logging.getLogger(__name__)
 
 
-def start_bot(mode: int = BotMode.WEBHOOK) -> None:
-    """Set up and run the bot
-
-    Args:
-        mode (int, optional): bot mode. Defaults to BotMode.POLLING.
-    """
+def create_bot_app() -> None:
+    """Set up and run the bot"""
     # create application
     application = (
         ApplicationBuilder()
@@ -195,19 +191,7 @@ def start_bot(mode: int = BotMode.WEBHOOK) -> None:
         )
     )
 
-    # start the bot
-    if os.environ.get("HOOK_URL") and mode == BotMode.WEBHOOK:
-        log.info("Running in webhook mode!")
-        webhook_url = f'https://{os.environ["HOOK_URL"]}/{os.environ["TOKEN"]}'
-        webhook_port = int(os.environ.get("PORT", "8443"))
-        log.info("Webhook URL: %s.", webhook_url)
-        log.info("Webhook port: %s.", webhook_port)
-        application.run_webhook(
-            listen="0.0.0.0",
-            port=webhook_port,
-            url_path=os.environ["TOKEN"],
-            webhook_url=webhook_url,
-        )
-    else:
-        log.info("Running in polling mode!")
-        application.run_polling()
+    return application
+
+
+bot_application = create_bot_app()
