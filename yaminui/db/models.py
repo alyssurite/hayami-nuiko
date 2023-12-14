@@ -201,6 +201,8 @@ class User(Base):
     is_banned: Mapped[bool0]
     # if user was deleted
     is_deleted: Mapped[bool0]
+    # user api token
+    token: Mapped[Optional[str]] = mapped_column(String(32))
 
 
 class Post(Base):
