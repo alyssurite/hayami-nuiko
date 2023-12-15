@@ -135,7 +135,7 @@ async def just_forwarding_group(
     data: UserData,
     links: list[Link] = None,
 ) -> None:
-    notify(update, function="just_forwarding_group")
+    notify(update.effective_chat, function="just_forwarding_group")
     job_queue = context.job_queue
     media_group_id, message_id, chat_id, source_chat = (
         update.effective_message.media_group_id,  # used as job name
@@ -163,7 +163,7 @@ async def just_forwarding_group(
     # can be ignored for this one
     if art := await get_links(link):
         art = art._asdict()
-        notify(update, art=art)
+        notify(update.effective_chat, art=art)
         art_dict["files"] = await extract_media_ids(art)
     else:
         log.warning("Forward Group: Couldn't get content: %r.", link.link)
@@ -218,7 +218,7 @@ async def just_forwarding(
     data: UserData,
     links: list[Link],
 ) -> None:
-    notify(update, function="just_forwarding")
+    notify(update.effective_chat, function="just_forwarding")
     await get_posted(update, data, link := await get_first_link(update, links))
     art_dict = {
         "aid": link.id,
@@ -232,7 +232,7 @@ async def just_forwarding(
     # can be ignored for this one
     if art := await get_links(link):
         art = art._asdict()
-        notify(update, art=art)
+        notify(update.effective_chat, art=art)
         art_dict["files"] = await extract_media_ids(art)
     else:
         log.warning("Forward: Couldn't get content: %r.", link.link)
@@ -307,7 +307,7 @@ async def no_forwarding(
     data: UserData,
     links: list[Link],
 ) -> None:
-    notify(update, function="no_forwarding")
+    notify(update.effective_chat, function="no_forwarding")
     # process links
     for link in links:
         if not (art := await get_links(link)):
@@ -319,7 +319,7 @@ async def no_forwarding(
             log.error("No Forward: Couldn't get content: %r.", link.link)
             continue
         art = art._asdict()
-        notify(update, art=art)
+        notify(update.effective_chat, art=art)
         com = {
             "context": context,
             "info": art,

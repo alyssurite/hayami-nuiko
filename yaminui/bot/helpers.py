@@ -150,7 +150,7 @@ async def pixiv_save(update: Update, art: dict = None) -> None:
         update (Update): current update
         art (dict, optional): art media dictionary. Defaults to None
     """
-    notify(update, function="pixiv_save")
+    notify(update.effective_chat, function="pixiv_save")
     user_id = update.effective_user.id
     with Session.begin() as session:
         user = session.get(User, user_id)
@@ -175,7 +175,7 @@ async def pixiv_post(
     data: UserData,
     text: str,
 ) -> None:
-    notify(update, function="pixiv_post")
+    notify(update.effective_chat, function="pixiv_post")
     art = data.info
     if not (ids := await normalize_order(update, text, len(art["links"]))):
         return PostingResult.STATE_ERROR
@@ -191,7 +191,7 @@ async def pixiv_post(
         "is_forwarded": False,
     }
     if not (artwork := await get_artwork(art["id"], art["type"])):
-        notify(update, art=art)
+        notify(update.effective_chat, art=art)
         artwork = ArtWork(**art_dict)
         post_dict["is_original"] = True
         log.info("Pixiv Post: ArtWork to insert: %s.", art_dict)

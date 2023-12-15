@@ -34,7 +34,7 @@ async def toggler(update: Update, mode: str, field: str) -> None:
         field (str): a field in database to change.
     """
     if (state := await toggle_field(update.effective_user.id, field)) is not None:
-        notify(update, toggle=(field, state))
+        notify(update.effective_chat, toggle=(field, state))
         await send_reply(update, f"*{mode}* mode is now *{states[state]}*\\.")
 
 

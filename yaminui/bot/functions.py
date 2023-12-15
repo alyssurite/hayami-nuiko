@@ -59,7 +59,7 @@ async def universal(update: Update, context: CallbackContext) -> None:
         update (Update): current update
         context (CallbackContext): current context
     """
-    notify(update, command="universal")
+    notify(update.effective_chat, command="universal")
     # update & get user data
     await update_chat(update.effective_chat)
     if not (data := await get_user_data(update)):
@@ -122,7 +122,7 @@ async def universal(update: Update, context: CallbackContext) -> None:
 
 async def handle_post(update: Update, _: CallbackContext) -> None:
     """Handles posts in channel"""
-    notify(update, command="handle_post")
+    notify(update.effective_chat, command="handle_post")
     # update channel
     await update_chat(update.effective_chat)
     # check for text
@@ -154,7 +154,7 @@ async def handle_post(update: Update, _: CallbackContext) -> None:
     # can be ignored for this one
     if art := await get_links(link):
         art = art._asdict()
-        notify(update, art=art)
+        notify(update.effective_chat, art=art)
         art_dict["files"] = await extract_media_ids(art)
     else:
         log.warning("Handle Post: Couldn't get content: %r.", link.link)

@@ -218,7 +218,7 @@ async def just_posting(
     data: UserData,
     links: list[Link],
 ) -> None:
-    notify(update, function="just_posting")
+    notify(update.effective_chat, function="just_posting")
     # process links
     for link in links:
         if await get_artwork(link.id, link.type):
@@ -248,7 +248,7 @@ async def just_posting(
             log.error("Post: Couldn't get content: %r.", link.link)
             continue
         art = art._asdict()
-        notify(update, art=art)
+        notify(update.effective_chat, art=art)
         match link.type:
             # twitter links
             case LinkType.TWITTER:

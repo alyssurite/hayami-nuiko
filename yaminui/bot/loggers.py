@@ -4,14 +4,14 @@ import logging
 from typing import Any
 
 # telegram core bot api
-from telegram import Update
+from telegram import Chat
 
 # get logger
 log = logging.getLogger(__name__)
 
 
 def notify(
-    update: Update,
+    chat: Chat,
     *,
     command: str = None,
     function: str = None,
@@ -22,13 +22,12 @@ def notify(
     """Log that something hapened
 
     Args:
-        update (Update): current update
+        chat (Chat): current chat.
         command (str, optional): called command. Defaults to None.
         function (str, optional): called function. Defaults to None.
         art (ArtWorkMedia, optional): art object. Defaults to None.
         toggle (tuple[str, bool]m optional): toggler info. Defaults to None.
     """
-    chat = update.effective_chat
     if command:
         log.info(
             "<%d> %r called command: %r.",

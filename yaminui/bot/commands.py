@@ -37,7 +37,7 @@ HELP_MESSAGE = Path(os.environ["HELP_FILE"]).read_text(encoding="utf-8")
 
 async def command_start(update: Update, _: CallbackContext) -> None:
     """Sends start message."""
-    notify(update, command="/start")
+    notify(update.effective_chat, command="/start")
     await update_chat(update.effective_chat)
     await send_reply(
         update,
@@ -49,13 +49,13 @@ async def command_start(update: Update, _: CallbackContext) -> None:
 
 async def command_help(update: Update, _: CallbackContext) -> None:
     """Sends help message."""
-    notify(update, command="/help")
+    notify(update.effective_chat, command="/help")
     await send_reply(update, text=HELP_MESSAGE)
 
 
 async def command_forward(update: Update, _: CallbackContext) -> None:
     """Toggles forwarding to channel."""
-    notify(update, command="/forward")
+    notify(update.effective_chat, command="/forward")
     try:
         await toggler(update, mode="Forwarding", field="forward_mode")
     except ValueError:
@@ -64,31 +64,31 @@ async def command_forward(update: Update, _: CallbackContext) -> None:
 
 async def command_reply(update: Update, _: CallbackContext) -> None:
     """Toggles replying to user's messages."""
-    notify(update, command="/reply")
+    notify(update.effective_chat, command="/reply")
     await toggler(update, mode="Replying", field="reply_mode")
 
 
 async def command_media(update: Update, _: CallbackContext) -> None:
     """Toggles adding video/gif to bare links."""
-    notify(update, command="/media")
+    notify(update.effective_chat, command="/media")
     await toggler(update, mode="Media", field="media_mode")
 
 
 async def command_pixiv_style(update: Update, context: CallbackContext) -> None:
     """Changes (switches/cycles) Pixiv style."""
-    notify(update, command="/pixiv_style")
+    notify(update.effective_chat, command="/pixiv_style")
     await change_style(update, style=PixivStyle, args=context.args)
 
 
 async def command_twitter_style(update: Update, context: CallbackContext) -> None:
     """Changes (switches/cycles) Twitter style."""
-    notify(update, command="/twitter_style")
+    notify(update.effective_chat, command="/twitter_style")
     await change_style(update, style=TwitterStyle, args=context.args)
 
 
 async def command_channel(update: Update, context: CallbackContext) -> int:
     """Starts process of adding user's channel to database."""
-    notify(update, command="/channel")
+    notify(update.effective_chat, command="/channel")
     if context.user_data.get(BotState.CHANNEL, None):
         await send_reply(
             update,
@@ -107,7 +107,7 @@ async def command_channel(update: Update, context: CallbackContext) -> int:
 
 async def command_cancel(update: Update, context: CallbackContext) -> int:
     """Cancels and ends conversation."""
-    notify(update, command="/cancel")
+    notify(update.effective_chat, command="/cancel")
     if context.user_data.get(BotState.CHANNEL, None):
         context.user_data[BotState.CHANNEL] = False
         await send_reply(

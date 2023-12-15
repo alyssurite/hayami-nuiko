@@ -183,7 +183,7 @@ async def answer_query_post(
     data: UserData,
     out: Link = None,
 ) -> None:
-    notify(update, command="answer_query_post")
+    notify(update.effective_chat, command="answer_query_post")
     result = PostingResult.STATE_NOT_POSTABLE
     # get message info
     if out:
@@ -210,7 +210,7 @@ async def answer_query_post(
         return result
     art = art._asdict()
     illust = art_link.illust or None
-    notify(update, art=art)
+    notify(update.effective_chat, art=art)
     # artwork already exists
     post_dict["artwork"] = await get_artwork(art["id"], art["type"])
     match art["type"]:
@@ -234,7 +234,7 @@ async def answer_query_repost(
     data: UserData,
     out: Link = None,
 ) -> None:
-    notify(update, command="answer_query_repost")
+    notify(update.effective_chat, command="answer_query_repost")
     result = PostingResult.STATE_NOT_POSTABLE
     # get message info
     if out:
@@ -330,7 +330,7 @@ async def answer_query_repost(
 
 
 async def answer_query(update: Update, context: CallbackContext) -> None:
-    notify(update, command="answer_query")
+    notify(update.effective_chat, command="answer_query")
     # answer callback query
     await update.callback_query.answer()
     # get user data
