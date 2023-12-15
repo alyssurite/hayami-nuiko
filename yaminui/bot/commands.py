@@ -14,7 +14,7 @@ from telegram.ext import CallbackContext, ConversationHandler
 from ..api import PixivStyle, TwitterStyle
 
 # database updaters
-from ..db.updaters import update_chat
+from ..db.updaters import update_chat, update_token
 
 # bot states
 from . import BotState
@@ -103,6 +103,16 @@ async def command_channel(update: Update, context: CallbackContext) -> int:
         "Then, forward a message from *your channel* to me\\.",
     )
     return BotState.CHANNEL
+
+
+async def command_generate_token(update: Update, _: CallbackContext) -> None:
+    """Generates new token and replaces old one."""
+    notify(update.effective_chat, command="/generate_token")
+    token = await update_token(update.effective_chat.id)
+    await send_reply(
+        update,
+        f"Your new token: ||`{token}`||\\.\n\n`[` *🚨 DO NOT SHARE IT\\! 🚨* `]`",
+    )
 
 
 async def command_cancel(update: Update, context: CallbackContext) -> int:

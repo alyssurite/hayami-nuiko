@@ -26,6 +26,7 @@ from ..bot.commands import (
     command_cancel,
     command_channel,
     command_forward,
+    command_generate_token,
     command_help,
     command_media,
     command_pixiv_style,
@@ -124,6 +125,14 @@ def create_bot_app() -> None:
         CommandHandler(
             command="twitter_style",
             callback=command_twitter_style,
+        )
+    )
+
+    # generate new token
+    application.add_handler(
+        CommandHandler(
+            command="generate_token",
+            callback=command_generate_token,
         )
     )
 

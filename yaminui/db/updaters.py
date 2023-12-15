@@ -1,5 +1,6 @@
 """Updaters module"""
 import logging
+import secrets
 
 # telegram core bot api
 from telegram import Chat
@@ -48,6 +49,14 @@ async def update_chat(chat: Chat) -> None:
                 )
             else:
                 user.full_name, user.nick_name = chat.full_name, chat.username
+
+
+async def update_token(user_id: int):
+    with Session.begin() as session:
+        user = session.get(User, user_id)
+        token = secrets.token_hex(16)
+        user.token = token
+        return token
 
 
 async def toggle_field(user_id: int, field: str) -> bool:
