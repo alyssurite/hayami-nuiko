@@ -13,6 +13,9 @@ from telegram.ext import CallbackContext, ConversationHandler
 # pixiv & twiter styles
 from ..api import PixivStyle, TwitterStyle
 
+# database getters
+from ..db.getters import get_token
+
 # database updaters
 from ..db.updaters import update_chat, update_token
 
@@ -112,6 +115,22 @@ async def command_generate_token(update: Update, _: CallbackContext) -> None:
     await send_reply(
         update,
         f"Your new token: ||`{token}`||\\.\n\n`[` *🚨 DO NOT SHARE IT\\! 🚨* `]`",
+    )
+
+
+async def command_show_token(update: Update, _: CallbackContext) -> None:
+    """Shows current token."""
+    notify(update.effective_chat, command="/show_token")
+    if not (token := await get_token(update.effective_chat.id)):
+        log.warning("Current token: Undefined.")
+        await send_reply(
+            update,
+            "You don't have a token\\.\nSend /generate\\_token to get one\\.",
+        )
+        return
+    await send_reply(
+        update,
+        f"Your current token: ||`{token}`||\\.\n\n`[` *🚨 DO NOT SHARE IT\\! 🚨* `]`",
     )
 
 

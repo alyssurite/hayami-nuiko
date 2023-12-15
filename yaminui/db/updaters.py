@@ -11,6 +11,9 @@ from ..api import BaseStyle
 # database session
 from . import Session
 
+# database getters
+from .getters import get_token
+
 # database models
 from .models import Channel, User
 
@@ -54,7 +57,11 @@ async def update_chat(chat: Chat) -> None:
 async def update_token(user_id: int):
     with Session.begin() as session:
         user = session.get(User, user_id)
+        # get new token
         token = secrets.token_hex(16)
+        # clear cache
+        await get_token.cache.delete(user_id)
+        # assign new token
         user.token = token
         return token
 

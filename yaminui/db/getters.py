@@ -28,7 +28,7 @@ from .models import ArtWork, Channel, Post, User
 log = logging.getLogger(__name__)
 
 
-@cached(ttl=None, key_builder=lambda *args: args[1])
+@cached(ttl=None, key_builder=lambda fn, *a, **kw: a[0])
 async def get_user(user_id: int) -> bool:
     """Checks if user in database.
 
@@ -42,7 +42,21 @@ async def get_user(user_id: int) -> bool:
         return bool(session.get(User, user_id))
 
 
-@cached(ttl=None, key_builder=lambda *args: args[1])
+@cached(ttl=None, key_builder=lambda fn, *a, **kw: a[0])
+async def get_token(user_id: int) -> Optional[str]:
+    """Gets user's token from database.
+
+    Args:
+        user_id (int): user id.
+
+    Returns:
+        Optional[str]: user's token if exists.
+    """
+    with Session() as session:
+        return session.get(User, user_id).token
+
+
+@cached(ttl=None, key_builder=lambda fn, *a, **kw: a[0])
 async def get_channel(channel_id: int) -> bool:
     """Checks if channel in database.
 

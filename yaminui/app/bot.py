@@ -31,6 +31,7 @@ from ..bot.commands import (
     command_media,
     command_pixiv_style,
     command_reply,
+    command_show_token,
     command_start,
     command_twitter_style,
 )
@@ -133,6 +134,14 @@ def create_bot_app() -> None:
         CommandHandler(
             command="generate_token",
             callback=command_generate_token,
+        )
+    )
+
+    # show old token
+    application.add_handler(
+        CommandHandler(
+            command="show_token",
+            callback=command_show_token,
         )
     )
 
