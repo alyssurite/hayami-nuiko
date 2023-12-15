@@ -2,14 +2,20 @@
 import logging
 import os
 
+# parse json
+import orjson
+
 # web application
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 
 # send json response
 from fastapi.responses import JSONResponse
 
 # telegram core bot api
 from telegram import Update
+
+# get user by token
+from ..db.getters import get_user_by_token
 
 # the bot
 from .bot import bot_application
@@ -44,3 +50,23 @@ async def telegram(request: Request):
         )
     )
     return JSONResponse(telegram_response)
+
+
+@api_application.post("/post")
+async def telegram_api_posting(request: Request):
+    try:
+        body = await request.body()
+        data = orjson.loads(body)
+        if not isinstance(data, dict):
+            raise TypeError
+    except orjson.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="Couldn't parse json.") from None
+    except TypeError:
+        raise HTTPException(status_code=400, detail="Bad data.") from None
+    if "token" not in data:
+        raise HTTPException(status_code=400, detail="No token provided.")
+    if "link" not in data:
+        raise HTTPException(status_code=422, detail="No link provided.")
+    if not (user := await get_user_by_token(data["token"])):
+        raise HTTPException(status_code=404, detail="No such user.")
+    return JSONResponse({"success": {"user": user.id}})

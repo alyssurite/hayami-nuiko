@@ -57,6 +57,21 @@ async def get_token(user_id: int) -> Optional[str]:
 
 
 @cached(ttl=None, key_builder=lambda fn, *a, **kw: a[0])
+async def get_user_by_token(token: str) -> Optional[User]:
+    """Checks if user's token in database.
+
+    Args:
+        token (str): user token.
+
+    Returns:
+        Optional[User]: holder of token, if exists.
+    """
+    with Session() as session:
+        session.expire_on_commit = False
+        return session.scalars(select(User).filter_by(token=token)).first()
+
+
+@cached(ttl=None, key_builder=lambda fn, *a, **kw: a[0])
 async def get_channel(channel_id: int) -> bool:
     """Checks if channel in database.
 

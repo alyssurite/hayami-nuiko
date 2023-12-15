@@ -2,6 +2,9 @@
 import logging
 import secrets
 
+# working with database
+from sqlalchemy import select
+
 # telegram core bot api
 from telegram import Chat
 
@@ -12,13 +15,22 @@ from ..api import BaseStyle
 from . import Session
 
 # database getters
-from .getters import get_token
+from .getters import get_token, get_user_by_token
 
 # database models
 from .models import Channel, User
 
 # get logger
 log = logging.getLogger(__name__)
+
+
+async def generate_token():
+    with Session() as session:
+        tokens = set(session.scalars(select(User.token)).all())
+        while True:
+            token = secrets.token_hex(16)
+            if token not in tokens:
+                return token
 
 
 async def update_chat(chat: Chat) -> None:
@@ -58,9 +70,10 @@ async def update_token(user_id: int):
     with Session.begin() as session:
         user = session.get(User, user_id)
         # get new token
-        token = secrets.token_hex(16)
+        token = await generate_token()
         # clear cache
-        await get_token.cache.delete(user_id)
+        await get_token.cache.delete(user.id)
+        await get_user_by_token.cache.delete(user.token)
         # assign new token
         user.token = token
         return token
