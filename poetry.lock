@@ -1951,6 +1951,19 @@ pymysql = ["pymysql"]
 sqlcipher = ["sqlcipher3-binary"]
 
 [[package]]
+name = "sqlalchemy-serializer"
+version = "1.4.1"
+description = "Mixin for SQLAlchemy-models serialization without pain"
+optional = false
+python-versions = "*"
+files = [
+    {file = "SQLAlchemy-serializer-1.4.1.tar.gz", hash = "sha256:c4cf3e3eebbffa5b46a77ddb886230e5d8c17fd0b9ddbd57eed1a837eb1463cc"},
+]
+
+[package.dependencies]
+SQLAlchemy = "*"
+
+[[package]]
 name = "starlette"
 version = "0.27.0"
 description = "The little ASGI library that shines."
@@ -2388,4 +2401,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11,<3.12"
-content-hash = "fdd805c5fd9fd9577cd7f55ca488859281eba8b2e0edb2aff5b6e6c3d2cea216"
+content-hash = "553c8f6742c9d3d6265d6a64cd0bb41e6197e94657613b2efff72f6220b83f1a"

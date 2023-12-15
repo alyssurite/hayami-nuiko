@@ -15,6 +15,9 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship, validates
 
+# serializer
+from sqlalchemy_serializer import SerializerMixin
+
 # import pixiv & twitter styles and link types
 from ..api import LinkType, PixivStyle, TwitterStyle
 
@@ -95,7 +98,7 @@ class Channel(Base):
     is_deleted: Mapped[bool0]
 
 
-class User(Base):
+class User(Base, SerializerMixin):
     """Table for storing telegram user data"""
 
     __tablename__ = "user"
