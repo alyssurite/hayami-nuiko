@@ -7,6 +7,7 @@ from typing import Callable, Optional
 
 # telegram core bot api
 from telegram import (
+    Chat,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
     InputMediaDocument,
@@ -22,9 +23,6 @@ from telegram.constants import ParseMode as PM
 # telegram errors
 from telegram.error import RetryAfter, TimedOut
 
-# telegram core bot api extension
-from telegram.ext import CallbackContext
-
 # hardcore retrying
 from tenacity import AsyncRetrying, RetryCallState, before_sleep_log, stop_after_attempt
 
@@ -33,6 +31,9 @@ from ..api import LinkType, PixivStyle, TwitterStyle
 
 # link namedtuple
 from ..api.namedtuples import Link
+
+# get bot
+from ..bot import ptb_app
 
 # bot utils
 from ..bot.utils import get_post_link
@@ -146,7 +147,7 @@ async def send_warn(update: Update, link: Link, **kwargs) -> Message:
     url = f"{link.link}{'+' + link.illust if link.illust else ''}"
     return await send_reply(
         update,
-        f"This [artwork]({esc(url)}) was already posted\\: {text}\\.\n\n"
+        text=f"This [artwork]({esc(url)}) was already posted\\: {text}\\.\n\n"
         "`\\[` ⚠️ *POST IT ANYWAY\\?* ⚠️ `\\]`",
         reply_markup=InlineKeyboardMarkup(
             [
@@ -155,6 +156,34 @@ async def send_warn(update: Update, link: Link, **kwargs) -> Message:
             ]
         ),
         quote=True,
+        **kwargs,
+    )
+
+
+@retry_sending
+async def send_api_warn(chat: Chat, link: Link, **kwargs) -> Message:
+    """Send message with warning to the chat
+
+    Args:
+        chat (Chat): current chat
+        link (Link): link to the artwork
+
+    Returns:
+        Message: Telegram Message
+    """
+    posted = await get_other_links(link.id, link.type)
+    text = ", and ".join([f"[here]({esc(post)})" for post in posted])
+    url = f"{link.link}{'+' + link.illust if link.illust else ''}"
+    return await chat.send_message(
+        text=f"This [artwork]({esc(url)}) was already posted\\: {text}\\.\n\n"
+        "`\\[` ⚠️ *POST IT ANYWAY\\?* ⚠️ `\\]`",
+        reply_markup=InlineKeyboardMarkup(
+            [
+                [InlineKeyboardButton(text="♻️ Repost! ♻️", callback_data="repost")],
+                [InlineKeyboardButton(text="🚩 Post!  🚩", callback_data="post")],
+            ]
+        ),
+        parse_mode=PM.MARKDOWN_V2,
         **kwargs,
     )
 
@@ -187,18 +216,42 @@ async def send_reply_post(
 
 
 @retry_sending
+async def send_api_reply_post(
+    chat: Chat,
+    text: str,
+    channel_id: int,
+    post_id: int,
+    link: str,
+) -> Message:
+    """Reply to current message with link to posted content
+
+    Args:
+        update (Update): current update
+        text (str): description of action
+        channel_id (int): channel id
+        post_id (int): channel post id
+        link (str): content original link
+
+    Returns:
+        Message: Telegram Message
+    """
+    link, post = esc(link), esc(get_post_link(channel_id, post_id))
+    return await chat.send_message(
+        text=f"*[Artwork]({link})* was *[{text}]({post})*\\!",
+        parse_mode=PM.MARKDOWN_V2,
+    )
+
+
+@retry_sending
 async def send_post(
-    context: CallbackContext,
-    *,
-    parse_mode: str = None,
     info: dict = None,
     text: str = None,
+    parse_mode: str = None,
     **kwargs,
 ) -> Optional[Message]:
     """Send post to channel
 
     Args:
-        context (CallbackContext): current context
         info (dict): art media dictionary
         text (str): text to send
 
@@ -208,7 +261,7 @@ async def send_post(
     if info:
         text = esc(info["link"])
     if text:
-        return await context.bot.send_message(
+        return await ptb_app.send_message(
             text=text,
             parse_mode=parse_mode,
             **kwargs,
@@ -230,7 +283,6 @@ async def escape_all(post: dict[str], kind: str):
 
 @retry_sending
 async def send_media(
-    context: CallbackContext,
     info: dict,
     *,
     order: list[int] = None,
@@ -240,7 +292,6 @@ async def send_media(
     """Sends media as media group
 
     Args:
-        context (CallbackContext): current context
         info (dict): art media dictionary
         order (list[int], optional): which artworks to upload. Defaults to None.
         style (int, optional): pixiv style. Defaults to None.
@@ -266,7 +317,6 @@ async def send_media(
             caption = PixivStyle.get_format(style, **post)
             if style in (PixivStyle.INFO_EMBED_LINK, PixivStyle.INFO_LINK):
                 return await send_post(
-                    context,
                     text=caption,
                     parse_mode=parse_mode,
                     **kwargs,
@@ -277,7 +327,6 @@ async def send_media(
             caption = TwitterStyle.get_format(style, **post)
             if style == TwitterStyle.LINK:
                 return await send_post(
-                    context,
                     text=caption,
                     parse_mode=parse_mode,
                     **kwargs,
@@ -311,7 +360,7 @@ async def send_media(
     # answer to pixiv artwork
     if "reply_to_message_id" in kwargs and "message_id" in info:
         kwargs["reply_to_message_id"] = info["message_id"]
-    return await context.bot.send_media_group(
+    return await ptb_app.send_media_group(
         media=media,
         read_timeout=READ_MEDIA_TIMEOUT,
         write_timeout=WRITE_MEDIA_TIMEOUT,
@@ -321,7 +370,6 @@ async def send_media(
 
 @retry_sending
 async def send_media_doc(
-    context: CallbackContext,
     info: dict,
     *,
     media_filter: list[str] = None,
@@ -332,7 +380,6 @@ async def send_media_doc(
     """Send media as documents
 
     Args:
-        context (CallbackContext): current context
         info (dict): art media dictionary
         media_filter (list[str], optional): types to send. Defaults to None.
         channel_mode (bool, optional): don't send document, send media.
@@ -406,7 +453,7 @@ async def send_media_doc(
     # answer to pixiv artwork
     if "reply_to_message_id" in kwargs and "message_id" in filtered_info:
         kwargs["reply_to_message_id"] = filtered_info["message_id"]
-    return await context.bot.send_media_group(
+    return await ptb_app.send_media_group(
         media=documents,
         read_timeout=READ_MEDIA_TIMEOUT,
         write_timeout=WRITE_MEDIA_TIMEOUT,

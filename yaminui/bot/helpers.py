@@ -199,7 +199,6 @@ async def pixiv_post(
         log.info("Pixiv Post: Used ArtWork: %s.", art_dict)
     if data.forward:
         if posted := await send_media(
-            context=context,
             info=art,
             order=ids,
             style=data.pixiv,
@@ -222,7 +221,6 @@ async def pixiv_post(
             log.info("Pixiv Post: Inserted Post: %s.", post_dict)
             if data.reply:
                 await send_media(
-                    context=context,
                     info=art,
                     order=ids,
                     style=data.pixiv,
@@ -243,7 +241,6 @@ async def pixiv_post(
     else:
         if data.reply:
             await send_media(
-                context=context,
                 info=art,
                 order=ids,
                 style=data.pixiv,
@@ -251,7 +248,6 @@ async def pixiv_post(
                 reply_to_message_id=update.effective_message.message_id,
             )
         await send_media_doc(
-            context=context,
             info=art,
             order=ids,
             chat_id=update.effective_chat.id,
@@ -270,9 +266,21 @@ async def normalize_order(
     count: int,
     max_amount: int = 10,
 ) -> tuple[int]:
+    result = just_normalize_order(text, count, max_amount)
+    if result[0]:
+        return result[2]
+    await send_error(update, result[1])
+    return tuple()
+
+
+async def just_normalize_order(
+    text: str,
+    count: int,
+    max_amount: int = 10,
+):
     ids = []
     if not (text and count):
-        return tuple(ids)
+        return (True, "No text or file count.", tuple())
     for number in re.finditer(pixiv_number, text):
         n1 = int(number.group("n1"))
         if n2 := number.group("n2"):
@@ -286,21 +294,19 @@ async def normalize_order(
     ids = list(dict.fromkeys(ids))  # can't use set() because of order
     # check if all numbers within range
     if max(ids) > count or min(ids) < 1:
-        await send_error(
-            update,
-            f"*Not within* range: \\[`1`\\-`{count}`\\]\\!",
-        )
         log.error("Normalize Order: Not within range [1-%s].", count)
-        return tuple()
-        # return tuple(filter(lambda x: 1 <= x <= count, ids))[:max_amount]
+        return (
+            False,
+            f"*Not within* range: \\[`1`\\-`{count}`\\]\\!",
+            tuple(filter(lambda x: 1 <= x <= count, ids))[:max_amount],
+        )
     # check if there's more than 10 numbers
     if len(ids) > max_amount:
-        await send_error(
-            update,
-            f"You *can\\'t* choose more than {max_amount} files\\!",
-        )
         log.error("Normalize Order: More than %s files.", max_amount)
-        return tuple()
-        # return tuple(ids[:max_amount])
+        return (
+            False,
+            f"You *can\\'t* choose more than {max_amount} files\\!",
+            tuple(ids[:max_amount]),
+        )
     log.info("Normalize Order: Result: %s.", ids)
-    return tuple(ids)
+    return (True, "Order was normalized\\.", tuple(ids))

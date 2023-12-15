@@ -62,7 +62,6 @@ async def just_posting_twitter(
     link: Link,
 ) -> PostingResult:
     if posts := await send_media(
-        context=context,
         info=art,
         style=data.twitter,
         chat_id=data.chan,
@@ -120,7 +119,6 @@ async def just_posting_twitter(
             )
         if data.media and data.twitter == TwitterStyle.LINK:
             await send_media_doc(
-                context=context,
                 info=art,
                 media_filter=("video", "animated_gif", "ugoira"),
                 channel_mode=True,
@@ -146,7 +144,6 @@ async def just_posting_pixiv(
         PixivStyle.INFO_EMBED_LINK,
     ):
         if posts := await send_media(
-            context=context,
             info=art,
             style=data.pixiv,
             chat_id=data.chan,
@@ -193,7 +190,6 @@ async def just_posting_pixiv(
             log.info("Post: Inserted Post: %s.", post_dict)
             if data.reply:
                 await send_media(
-                    context=context,
                     info=art,
                     style=data.pixiv,
                     chat_id=update.effective_chat.id,

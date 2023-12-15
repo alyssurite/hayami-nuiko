@@ -4,16 +4,16 @@ import logging
 import re
 
 # telegram core bot api
-from telegram import Update
+from telegram import Chat, Update
 
 # telegram core bot api extension
 from telegram.ext import CallbackContext
 
 # pixiv styles, link types
-from ..api import LinkType
+from ..api import LinkType, TwitterStyle
 
 # get queue size
-from ..bot import QUEUE_SIZE
+from ..bot import QUEUE_SIZE, ptb_app
 
 # database session
 from ..db import Session
@@ -22,13 +22,17 @@ from ..db import Session
 from ..db.getters import get_artwork, get_user_data
 
 # database models
-from ..db.models import ArtWork, Channel, Post
+from ..db.models import ArtWork, Channel, Post, User
 
 # database updaters
 from ..db.updaters import update_chat
+from ..extra.upload import upload_media
 
 # bot forwarding
 from .forwarding import just_forwarding, just_forwarding_group, no_forwarding
+
+# normalize order
+from .helpers import just_normalize_order
 
 # bot loggers
 from .loggers import notify
@@ -37,7 +41,13 @@ from .loggers import notify
 from .posting import just_posting, pixiv_post
 
 # bot senders
-from .senders import send_error
+from .senders import (
+    send_api_reply_post,
+    send_api_warn,
+    send_error,
+    send_media,
+    send_media_doc,
+)
 
 # bot utils
 from .utils import extract_media_ids, formatter, get_links, get_text
@@ -187,3 +197,100 @@ async def handle_post(update: Update, _: CallbackContext) -> None:
         session.add(Post(**post_dict, artwork=artwork))
     log.info("Handle Post: Inserted ArtWork: %s.", art_dict)
     log.info("Handle Post: Inserted Post: %s.", post_dict)
+
+
+async def api_post(user: User, text: str) -> None:
+    """Handles api posting to channel"""
+    chat: Chat = await ptb_app.get_chat(user.id)
+    notify(chat, command="api_post")
+    # check for text
+    if not text:
+        log.error("API Post: No text.")
+        return {"code": 400, "error": "No text."}
+    log.info("API Post: Received link: %r.", text)
+    # get links
+    if not (links := await formatter(text)):
+        log.warning("API Post: No links found.")
+        return {
+            "code": 400,
+            "error": "No valid links.",
+        }
+    # process link
+    link = links[0]
+    log.info("API Post: Processing link: %r.", link.link)
+    post_dict = {
+        "channel_id": user.channel.id,
+        "is_original": False,
+        "is_forwarded": False,
+    }
+    art_dict = {"aid": link.id, "type": link.type}
+    # can be ignored for this one
+    if art := await get_links(link):
+        art = art._asdict()
+        notify(chat, art=art)
+        art_dict["files"] = await extract_media_ids(art)
+    else:
+        log.warning("API Post: Couldn't get content: %r.", link.link)
+        return {
+            "code": 404,
+            "error": "No content.",
+        }
+    # get artwork if already in database
+    if await get_artwork(art_dict["aid"], art_dict["type"]):
+        await send_api_warn(chat, link)
+        return {
+            "code": 409,
+            "error": "Already posted. Choose an action in the chat.",
+        }
+    # otherwise create a new one
+    post_dict["artwork"] = ArtWork(**art_dict)
+    log.info("API Post: ArtWork to insert: %s.", art_dict)
+    post_dict["is_original"] = True
+    # twitter only for now
+    match art["type"]:
+        case LinkType.PIXIV:
+            return {
+                "code": 501,
+                "error": "Currently, pixiv is not supported.",
+            }
+        # case LinkType.TWITTER:
+    if posted := await send_media(
+        info=art,
+        style=user.twitter_style,
+        chat_id=user.channel.id,
+        order=(await just_normalize_order(link.illust, len(art["links"])))[2],
+    ):
+        log.info("API Post Twitter: Successfully posted to channel.")
+        if user.twitter_style != TwitterStyle.LINK:
+            posted = posted[0]
+        post_dict.update(
+            {
+                "post_id": posted.message_id,
+                "post_date": posted.date,
+            }
+        )
+        with Session.begin() as session:
+            session.add(Post(**post_dict))
+        log.info("API Post Twitter: Inserted Post: %s.", post_dict)
+        if user.reply_mode:
+            await send_api_reply_post(
+                chat,
+                "posted",
+                user.channel.id,
+                posted.message_id,
+                art["link"],
+            )
+        if user.media_mode and user.twitter_style == TwitterStyle.LINK:
+            await send_media_doc(
+                info=art,
+                media_filter=("video", "animated_gif", "ugoira"),
+                channel_mode=True,
+                chat_id=user.channel.id,
+                reply_to_message_id=posted.message_id,
+            )
+        await upload_media(art, user.id)
+        post_dict["artwork"] = art_dict
+        return {
+            "code": 200,
+            "post": post_dict,
+        }

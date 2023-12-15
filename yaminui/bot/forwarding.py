@@ -279,7 +279,6 @@ async def just_forwarding(
         if data.media and not await check_message_media(update):
             if art:
                 if await send_media_doc(
-                    context=context,
                     info=art,
                     media_filter=("video", "animated_gif", "ugoira"),
                     channel_mode=True,
@@ -321,7 +320,6 @@ async def no_forwarding(
         art = art._asdict()
         notify(update.effective_chat, art=art)
         com = {
-            "context": context,
             "info": art,
             "chat_id": update.effective_chat.id,
             "reply_to_message_id": update.effective_message.message_id,

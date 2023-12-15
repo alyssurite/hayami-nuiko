@@ -8,6 +8,9 @@ from functools import partial
 # pyrogram client
 from pyrogram import Client
 
+# telegram core bot api
+from telegram import Bot
+
 # telegram core bot api extension
 from telegram.ext import Application
 
@@ -41,6 +44,9 @@ pyro_app = Client(
     api_hash=os.environ["API_HASH"],
     bot_token=os.environ["TOKEN"],
 )
+
+# telegram bot
+ptb_app = Bot(token=os.getenv("TOKEN"))
 
 
 async def on_bot_init(_: Application) -> None:

@@ -6,13 +6,16 @@ import os
 import orjson
 
 # web application
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Response
 
 # send json response
 from fastapi.responses import JSONResponse
 
 # telegram core bot api
 from telegram import Update
+
+# api posting
+from ..bot.functions import api_post
 
 # get user by token
 from ..db.getters import get_user_by_token
@@ -69,4 +72,12 @@ async def telegram_api_posting(request: Request):
         raise HTTPException(status_code=422, detail="No link provided.")
     if not (user := await get_user_by_token(data["token"])):
         raise HTTPException(status_code=404, detail="No such user.")
-    return JSONResponse({"success": {"user": user.id}})
+    # process data
+    result = await api_post(user, data["link"])
+    if error := result.get("error", None):
+        raise HTTPException(status_code=result["code"], detail=error)
+    # return post if successful
+    return Response(
+        orjson.dumps({"success": {"post": result["post"]}}),
+        media_type="application/json",
+    )

@@ -71,7 +71,6 @@ async def answer_query_twitter(
     illust: str = None,
 ):
     if posted := await send_media(
-        context=context,
         info=art,
         style=data.twitter,
         chat_id=data.chan,
@@ -101,7 +100,6 @@ async def answer_query_twitter(
             )
         if data.media and data.twitter == TwitterStyle.LINK:
             await send_media_doc(
-                context=context,
                 info=art,
                 media_filter=("video", "animated_gif", "ugoira"),
                 channel_mode=True,
@@ -128,7 +126,6 @@ async def answer_query_pixiv(
         PixivStyle.INFO_EMBED_LINK,
     ):
         if posted := await send_media(
-            context=context,
             info=art,
             style=data.pixiv,
             chat_id=data.chan,
@@ -150,7 +147,6 @@ async def answer_query_pixiv(
             log.info("Query Post Pixiv: Inserted Post: %s.", post_dict)
             if data.reply:
                 await send_media(
-                    context=context,
                     info=art,
                     style=data.pixiv,
                     chat_id=update.effective_chat.id,

@@ -9,6 +9,9 @@ from aiocache import cached
 # working with database
 from sqlalchemy import select
 
+# loading technique
+from sqlalchemy.orm import joinedload
+
 # telegram core bot api
 from telegram import Update
 
@@ -68,7 +71,9 @@ async def get_user_by_token(token: str) -> Optional[User]:
     """
     with Session() as session:
         session.expire_on_commit = False
-        return session.scalars(select(User).filter_by(token=token)).first()
+        return session.scalars(
+            select(User).filter_by(token=token).options(joinedload(User.channel))
+        ).first()
 
 
 @cached(ttl=None, key_builder=lambda fn, *a, **kw: a[0])
