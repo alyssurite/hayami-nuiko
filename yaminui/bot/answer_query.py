@@ -3,12 +3,16 @@ import logging
 
 # working with timezone
 from datetime import timezone as tz
+from typing import Optional
 
 # working with URLs
 from urllib.parse import unquote
 
 # pyrogram exceptions
 from pyrogram.errors.exceptions import BadRequest, ChannelPrivate
+
+# pyrogram types
+from pyrogram.types import Message
 
 # telegram core bot api
 from telegram import Update
@@ -60,6 +64,61 @@ from .utils import formatter, get_links
 
 # get logger
 log = logging.getLogger(__name__)
+
+
+async def get_messages_to_repost(
+    current_channel_id: int,
+    posted_links: list[str],
+) -> tuple[int, list[Message]]:
+    messages = []
+    for post in reversed(posted_links):
+        *_, cid, pid = post.split("/")
+        channel_id, post_id = cid_to_channel_id(int(cid)), int(pid)
+        try:
+            if (message := await pyro_app.get_messages(channel_id, int(post_id))).empty:
+                log.error("Query Repost: Couldn't repost from %r: No message.", post)
+                continue
+        except (BadRequest, ChannelPrivate) as err:
+            log.error("Query Repost: Couldn't repost from %r: %s.", post, err)
+            continue
+        messages.append(message)
+        if channel_id == current_channel_id or channel_id == message.forward_from_chat:
+            log.error("Query Repost: Self-forwarding is not allowed.")
+            return (PostingResult.STATE_SELFREPOST, messages)
+    return (PostingResult.STATE_CONTINUE, messages)
+
+
+async def get_source_channel(message: Message) -> Optional[int]:
+    if source := (message.forward_from_chat or message.chat):
+        with Session() as session:
+            if channel := session.get(Channel, source.id):
+                log.info(
+                    "Query Repost: Source: <%d> %r.",
+                    channel.id,
+                    channel.name,
+                )
+                return channel.id
+            log.info("Query Repost: Source: Unknown.")
+            log.info(
+                "Query Repost: Source: Info: <%d> %r.",
+                message.chat.id,
+                message.chat.title
+                if message.chat.id < 0
+                else message.chat.first_name + message.chat.last_name,
+            )
+    return None
+
+
+async def get_forward_ids(post_id: int, channel_id: int, message: Message) -> list[int]:
+    if not (mgi := message.media_group_id):
+        return [post_id]
+    forward_ids = [post_id]
+    for group_post_id in range(post_id + 1, post_id + 11):
+        message = await pyro_app.get_messages(channel_id, group_post_id)
+        if message.media_group_id != mgi:
+            break
+        forward_ids.append(group_post_id)
+    return forward_ids
 
 
 async def answer_query_twitter(
@@ -253,50 +312,21 @@ async def answer_query_repost(
         "is_forwarded": True,
         "artwork": await get_artwork(art_link.id, art_link.type),
     }
-    for post in reversed(posted):
-        forward_ids = []
-        *_, cid, pid = post.split("/")
-        channel_id, post_id = cid_to_channel_id(int(cid)), int(pid)
-        try:
-            if (mes := await pyro_app.get_messages(channel_id, int(post_id))).empty:
-                log.error("Query Repost: Couldn't repost from %r: No message.", post)
-                continue
-        except (BadRequest, ChannelPrivate) as err:
-            log.error("Query Repost: Couldn't repost from %r: %s.", post, err)
-            continue
-        if channel_id == data.chan:
-            result = PostingResult.STATE_SELFREPOST
-            await send_error(update, "You shouldn't *self\\-forward*\\!")
-            log.error("Query Repost: Self-forwarding is not allowed.")
-            break
-        with Session() as session:
-            if source := mes.forward_from_chat:
-                if channel := session.get(Channel, source.id):
-                    if channel.id == data.chan:
-                        result = PostingResult.STATE_SELFREPOST
-                        await send_error(update, "You shouldn't *self\\-forward*\\!")
-                        log.error("Query Repost: Self-forwarding is not allowed.")
-                        break
-                    repost_dict["forwarded_channel_id"] = channel.id
-                    log.info("Query Repost: Source: <%d> %r.", channel.id, channel.name)
-                else:
-                    log.info("Query Repost: Source: Unknown.")
-            elif mes.forward_date:
-                log.info("Query Repost: Source: Not a channel.")
-            else:
-                repost_dict["forwarded_channel_id"] = channel_id
-                log.info("Query Repost: Source: <%d> %r.", channel_id, mes.chat.title)
-        forward_ids.append(post_id)
-        if mgi := mes.media_group_id:
-            for group_post_id in range(post_id + 1, post_id + 10):
-                mes = await pyro_app.get_messages(channel_id, group_post_id)
-                if mes.media_group_id != mgi:
-                    break
-                forward_ids.append(group_post_id)
-        log.info("Query Repost: Reposting from <%d>: %s...", channel_id, forward_ids)
+    messages_to_repost = await get_messages_to_repost(data.chan, posted)
+    if messages_to_repost[0] == PostingResult.STATE_SELFREPOST:
+        await send_error(update, "You shouldn't *self\\-forward*\\!")
+        return PostingResult.STATE_SELFREPOST
+    for message in reversed(messages_to_repost[1]):
+        repost_dict["forwarded_channel_id"] = await get_source_channel(message)
+        forward_ids = await get_forward_ids(message.id, message.chat.id, message)
+        log.info(
+            "Query Repost: Reposting from <%d>: %s...",
+            message.chat.id,
+            forward_ids,
+        )
         if reposted := await pyro_app.forward_messages(
             repost_dict["channel_id"],
-            channel_id,
+            message.chat.id,
             forward_ids,
         ):
             log.info("Query Repost: Successfully forwarded to channel.")
