@@ -5,6 +5,12 @@ import re
 
 from typing import Optional
 
+# psql exceptions
+from psycopg2.errors import UniqueViolation
+
+# sqlaclhemy exceptions
+from sqlalchemy.exc import IntegrityError
+
 # telegram core bot api
 from telegram import Update
 
@@ -217,9 +223,29 @@ async def pixiv_post(
                     "post_date": posted.date,
                 }
             )
-            with Session.begin() as session:
-                session.add(Post(**post_dict, artwork=artwork))
-            log.info("Pixiv Post: Inserted Post: %s.", post_dict)
+            try:
+                with Session.begin() as session:
+                    session.add(Post(**post_dict, artwork=artwork))
+                log.info("Pixiv Post: Inserted Post: %s.", post_dict)
+            except IntegrityError as err:
+                log.warning("Pixiv Post: Integrity Error occured: %s", err)
+                if isinstance(err.orig, UniqueViolation):
+                    log.info("Pixiv Post: Seems like artwork is already in database.")
+                    if not (artwork := await get_artwork(art["id"], art["type"])):
+                        log.error("Pixiv Post: Failed to find artwork in database.")
+                        log.error(
+                            "Pixiv Post: Failed to insert ArtWork with Post: %s.",
+                            post_dict,
+                        )
+                    else:
+                        log.info(
+                            "Pixiv Post: Used already present ArtWork: [%d] %s.",
+                            artwork.id,
+                            art_dict,
+                        )
+                        with Session.begin() as session:
+                            session.add(Post(**post_dict, artwork=artwork))
+                        log.info("Pixiv Post: Inserted Post: %s.", post_dict)
             if data.reply:
                 await send_media(
                     context=context,
