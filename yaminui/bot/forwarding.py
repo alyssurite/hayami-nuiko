@@ -203,11 +203,11 @@ async def just_forwarding_group(
         "post_id": [message_id],
     }
     # upload to cloud
-    # if art:
-    #     if art["type"] == LinkType.PIXIV:
-    #         log.info("Forward Group: Skipping uploading pixiv media...")
-    #     else:
-    #         await upload_media(art, chat_id)
+    if art:
+        if art["type"] == LinkType.PIXIV:
+            log.info("Forward Group: Skipping uploading pixiv media...")
+        else:
+            await upload_media(art, chat_id)
     job_queue.run_once(
         callback=media_group_sender,
         when=DELAY_START,
