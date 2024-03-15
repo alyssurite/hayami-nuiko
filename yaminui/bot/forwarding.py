@@ -29,8 +29,8 @@ from ..db.models import ArtWork, Channel, Post
 # uploading media
 from ..extra.upload import upload_media
 
-# user data dataclass and everything else
-from . import DELAY_START, MISFIRE_GRACE_TIME, UserData, esc, pyro_app
+# bot constants, user data dataclass, etc.
+from . import DELAY_START, JOB_SLEEP, MISFIRE_GRACE_TIME, UserData, esc, pyro_app
 
 # bot helpers
 from .helpers import normalize_order, pixiv_save
@@ -55,23 +55,28 @@ from .utils import check_message_media, extract_media_ids, get_links
 log = logging.getLogger(__name__)
 
 
+async def get_message_date(chat_id: int, message_id: int):
+    return (await pyro_app.get_messages(chat_id, message_id)).date.astimezone(tz.utc)
+
+
 async def media_group_sender(context: CallbackContext):
     notify(context.job.data["update"], group_sender=context.job.data)
     # get all the data
     data = context.job.data
     if not data["post_id"]:
         return
-    posted = await pyro_app.forward_messages(
-        data["channel_id"],
-        data["chat_id"],
-        data["post_id"],
+    posted = await context.bot.forward_messages(
+        chat_id=data["channel_id"],
+        from_chat_id=data["chat_id"],
+        message_ids=sorted(data["post_id"]),
     )
     if posted:
-        log.info("Group Sender: Successfully forwarded to channel.")
+        post_id = posted[0].message_id
+        log.info("Group Sender: Successfully forwarded to channel: %d.", post_id)
         data["post_dict"].update(
             {
-                "post_id": posted[0].id,
-                "post_date": posted[0].date.astimezone(tz.utc),
+                "post_id": post_id,
+                "post_date": await get_message_date(data["channel_id"], post_id),
             }
         )
         with Session.begin() as session:
@@ -82,7 +87,7 @@ async def media_group_sender(context: CallbackContext):
                 data["update"],
                 "forwarded",
                 data["channel_id"],
-                posted[0].id,
+                post_id,
                 data["link"],
             )
 
@@ -149,7 +154,7 @@ async def just_forwarding_group(
             if jobs := job_queue.get_jobs_by_name(media_group_id):
                 jobs[0].data["post_id"].append(message_id)
                 return
-            await asyncio.sleep(0.25)
+            await asyncio.sleep(JOB_SLEEP)
     await get_posted(update, data, link := await get_first_link(update, links))
     art_dict = {
         "aid": link.id,
@@ -198,11 +203,11 @@ async def just_forwarding_group(
         "post_id": [message_id],
     }
     # upload to cloud
-    if art:
-        if art["type"] == LinkType.PIXIV:
-            log.info("Forward Group: Skipping uploading pixiv media...")
-        else:
-            await upload_media(art, chat_id)
+    # if art:
+    #     if art["type"] == LinkType.PIXIV:
+    #         log.info("Forward Group: Skipping uploading pixiv media...")
+    #     else:
+    #         await upload_media(art, chat_id)
     job_queue.run_once(
         callback=media_group_sender,
         when=DELAY_START,

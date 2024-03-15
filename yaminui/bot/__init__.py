@@ -30,7 +30,10 @@ READ_MEDIA_TIMEOUT, WRITE_MEDIA_TIMEOUT = 25, 50
 QUEUE_SIZE = 3
 
 # delay in seconds for collecting all media group messages
-DELAY_START = 5
+DELAY_START = 0.1
+
+# job sleep length for adding media group messages
+JOB_SLEEP = 0.05
 
 # allowed misfire time for a job
 MISFIRE_GRACE_TIME = 30
