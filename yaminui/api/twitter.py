@@ -80,7 +80,7 @@ async def get_from_public_api(tweet_id: int) -> Optional[Tweet]:
                 return tweet
         log.warning("No response from public API.")
     except ScraperException:
-        log.error("Scraping failed.")
+        log.warning("Scraping failed.")
 
 
 async def get_from_twimg_api(tweet_id: int) -> Optional[Tweet]:
@@ -124,7 +124,7 @@ async def get_from_twimg_api(tweet_id: int) -> Optional[Tweet]:
                 log.warning("Dead tweet.")
             return
         if not (user := tweet_info.get("user")):
-            log.error("Scraping failed.")
+            log.warning("Scraping failed.")
             return
         if not (media_info := tweet_info.get("mediaDetails")):
             log.warning("No media tweet.")
@@ -213,11 +213,11 @@ async def get_info_from_twitter_graphql(tweet_id: int) -> Optional[dict]:
         data_job.extractor.api = TwitterAPI(data_job.extractor)
         if data := data_job.extractor.tweets():
             return data
-        log.error("Twitter GraphQL: No data.")
+        log.warning("Twitter GraphQL: No data.")
     except gallery_dl.exception.StopExtraction:
-        log.error("Twitter GraphQL: Invalid data.")
+        log.warning("Twitter GraphQL: Invalid data.")
     except Exception as ex:
-        log.error("Twitter GraphQL: Excection occured: %s.", ex.args)
+        log.warning("Twitter GraphQL: Excection occured: %s.", ex.args)
     return
 
 
@@ -233,10 +233,10 @@ async def get_from_twitter_api(tweet_id: int) -> Optional[Tweet]:
     if api_data := await get_info_from_twitter_graphql(tweet_id):
         data = api_data[0]
         if not (tweet_info := data.get("legacy", None)):
-            log.error("Scraping failed.")
+            log.warning("Scraping failed.")
             return
         if not (tweet_info["entities"].get("media", None)):
-            log.error("No media.")
+            log.warning("No media.")
             return
         quote_info = None
         quote = data.get("quoted_status_result", None)
@@ -383,7 +383,7 @@ async def process_tweet(tweet: Tweet) -> Optional[ArtWorkMedia]:
         Optional[ArtWorkMedia]: twitter media namedtuple
     """
     if not (content := await get_twitter_media(tweet.media)):
-        log.error("Exception occured: No links.")
+        log.warning("Exception occured: No links.")
         return
     text: str = tweet.rawContent
     # replace short links with full
@@ -434,7 +434,7 @@ async def get_from_secret_api(tweet_id: int) -> Optional[Tweet]:
         log.debug("Request to API succeeded.")
         try:
             if not (tweet_info := orjson.loads(response.content)):
-                log.error("Failed to get tweet.")
+                log.warning("Failed to get tweet.")
                 return
         except orjson.JSONDecodeError:
             log.warning("Couldn't decode json response: %r.", response.content)

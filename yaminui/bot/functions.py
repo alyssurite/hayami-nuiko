@@ -126,9 +126,9 @@ async def handle_post(update: Update, _: CallbackContext) -> None:
     # update channel
     await update_chat(update.effective_chat)
     # check for text
+    log.info("Handle Post: Received update: %r.", update)
     if not (text := await get_text(update)):
-        log.info("Handle Post: Received update: %r.", update)
-        log.error("Handle Post: No text.")
+        log.warning("Handle Post: No text.")
         return
     log.info("Handle Post: Received text: %r.", text)
     # get links

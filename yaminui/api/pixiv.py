@@ -105,10 +105,10 @@ async def get_pixiv_info(pixiv_id: int) -> ArtWorkMedia:
         log.debug("Trying to fetch artwork...")
         json_result = await aapi.illust_detail(pixiv_id)
         if json_result.error:
-            log.error("This artwork was probably deleted.")
+            log.warning("This artwork was probably deleted.")
             return
         if not json_result.illust.visible:
-            log.error("This artwork is not public.")
+            log.warning("This artwork is not public.")
             return
         log.debug("Response: %r.", json_result.illust)
         return json_result.illust
