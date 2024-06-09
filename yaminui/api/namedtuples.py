@@ -9,6 +9,7 @@ Link = namedtuple(
         "link",
         "id",
         "illust",
+        "above",
     ],
 )
 

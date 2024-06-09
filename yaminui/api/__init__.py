@@ -215,6 +215,7 @@ LINKS = {
                 (?:\s*\+\s*)
                 (?P<illust>(?:\d{1,3}(?:-\d{1,3})?[\s\.\,\+]*)+)
             )?
+            (?P<above>[\!])?
         """,
         # example:
         # https://twitter.com/sandraghart/status/1693028247410184215?t=h5AFmBzg5wcGzshM-MOQGw&s=35+1
@@ -250,6 +251,7 @@ LINKS = {
                 (?:\s*\+\s*)
                 (?P<illust>(?:\d{1,3}(?:-\d{1,3})?[\s\.\,\+]*)+)
             )?
+            (?P<above>[\!])?
         """,
         "link": "https://www.pixiv.net/artworks/{id}",
         "type": LinkType.PIXIV,

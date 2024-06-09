@@ -4,7 +4,7 @@ import logging
 import re
 
 # telegram core bot api
-from telegram import Update
+from telegram import MessageOrigin, Update
 
 # telegram core bot api extension
 from telegram.ext import ContextTypes
@@ -46,7 +46,7 @@ from .utils import extract_media_ids, formatter, get_links, get_text
 log = logging.getLogger(__name__)
 
 # pixiv regex
-pixiv_regex = re.compile(r"^((?:\d+)(?:-\d+)?[.,\s]*){1,10}$")
+pixiv_regex = re.compile(r"^((?:\d+)(?:-\d+)?[.,\s]*){1,10}(?P<above>\!)?$")
 
 # update queue limiter
 queue = asyncio.Queue(QUEUE_SIZE)
@@ -96,9 +96,9 @@ async def universal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 log.info("Universal: no_forwarding.")
                 await no_forwarding(update, context, data, links)
             else:
-                if update.effective_message.forward_date and not (
-                    update.effective_message.forward_from
-                    and update.effective_message.forward_from.is_bot
+                if update.effective_message.forward_origin and not (
+                    update.effective_message.forward_origin.type == MessageOrigin.USER
+                    and update.effective_message.forward_origin.sender_user.is_bot
                 ):
                     if update.effective_message.media_group_id:
                         log.info("Universal: just_forwarding_group.")
@@ -109,9 +109,11 @@ async def universal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 else:
                     log.info("Universal: just_posting.")
                     await just_posting(update, context, data, links)
-        elif data.info and re.search(pixiv_regex, text):
+        elif data.info and (pixiv_check := re.search(pixiv_regex, text)):
             log.info("Universal: pixiv_post.")
-            await pixiv_post(update, context, data, text)
+            await pixiv_post(
+                update, context, data, text, bool(pixiv_check.group("above"))
+            )
         else:
             log.info("Universal: No idea what to do with message: %r.", text)
     finally:
@@ -146,7 +148,7 @@ async def handle_post(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     post_dict = {
         "channel_id": update.effective_chat.id,
         "is_original": False,
-        "is_forwarded": bool(update.effective_message.forward_date),
+        "is_forwarded": bool(update.effective_message.forward_origin),
         "post_id": update.effective_message.message_id,
         "post_date": update.effective_message.date,
     }

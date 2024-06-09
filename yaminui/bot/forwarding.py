@@ -340,7 +340,7 @@ async def no_forwarding(
             # twitter links
             case LinkType.TWITTER:
                 if data.reply:
-                    await send_media(**com, style=data.twitter)
+                    await send_media(**com, style=data.twitter, above=link.above)
                 await send_media_doc(**com)
             # one pixiv link
             case LinkType.PIXIV:
@@ -353,7 +353,7 @@ async def no_forwarding(
                 else:
                     log.info("No Forward: There's only 1 artwork.")
                 if data.reply:
-                    await send_media(**com, style=data.pixiv)
+                    await send_media(**com, style=data.pixiv, above=link.above)
                 await send_media_doc(**com)
         # upload to cloud
         await upload_media(art, update.effective_chat.id)

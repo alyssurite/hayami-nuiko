@@ -86,7 +86,8 @@ async def formatter(query: str) -> list[Link]:
                     re_type["type"],
                     link,
                     int(url["id"]),
-                    url["illust"] if url.lastgroup == "illust" else None,
+                    url.group("illust"),
+                    bool(url.group("above")),
                 )
             )
     return links

@@ -128,6 +128,7 @@ async def answer_query_twitter(
     art: dict,
     post_dict: dict,
     illust: str = None,
+    above: bool = False,
 ):
     if posted := await send_media(
         context=context,
@@ -137,6 +138,7 @@ async def answer_query_twitter(
         order=(
             await normalize_order(update, illust, len(art["links"])) if illust else None
         ),
+        above=above,
     ):
         log.info("Query Post Twitter: Successfully posted to channel.")
         if data.twitter != TwitterStyle.LINK:
@@ -178,10 +180,11 @@ async def answer_query_pixiv(
     art: dict,
     post_dict: dict,
     illust: str = None,
+    above: bool = False,
 ):
     if illust:
         data.info = art
-        return await pixiv_post(update, context, data, illust)
+        return await pixiv_post(update, context, data, illust, above)
     if len(art["links"]) == 1 or data.pixiv in (
         PixivStyle.INFO_LINK,
         PixivStyle.INFO_EMBED_LINK,
@@ -191,6 +194,7 @@ async def answer_query_pixiv(
             info=art,
             style=data.pixiv,
             chat_id=data.chan,
+            above=above,
         ):
             log.info("Query Post Pixiv: Successfully posted to channel.")
             if data.pixiv not in (
@@ -246,7 +250,11 @@ async def answer_query_post(
     result = PostingResult.STATE_NOT_POSTABLE
     # get message info
     if out:
-        link = f"{out.link}{'+'+out.illust if out.illust else ''}"
+        link = (
+            f"{out.link}"
+            f"{'+' + out.illust if out.illust else ''}"
+            f"{'!' if out.above else ''}"
+        )
         art_link = out
     else:
         link, _, _ = convert_entities_to_links(update)
@@ -268,18 +276,17 @@ async def answer_query_post(
         log.error("Query Post: Couldn't get content: %r.", link)
         return result
     art = art._asdict()
-    illust = art_link.illust or None
     notify(update, art=art)
     # artwork already exists
     post_dict["artwork"] = await get_artwork(art["id"], art["type"])
     match art["type"]:
         case LinkType.TWITTER:
             result = await answer_query_twitter(
-                update, context, data, art, post_dict, illust
+                update, context, data, art, post_dict, art_link.illust, art_link.above
             )
         case LinkType.PIXIV:
             result = await answer_query_pixiv(
-                update, context, data, art, post_dict, illust
+                update, context, data, art, post_dict, art_link.illust, art_link.above
             )
     # upload to cloud
     if result == PostingResult.STATE_POSTED:
@@ -297,7 +304,11 @@ async def answer_query_repost(
     result = PostingResult.STATE_NOT_POSTABLE
     # get message info
     if out:
-        link = f"{out.link}{'+'+out.illust if out.illust else ''}"
+        link = (
+            f"{out.link}"
+            f"{'+' + out.illust if out.illust else ''}"
+            f"{'!' if out.above else ''}"
+        )
         art_link = out
         posted = await get_other_links(out.id, out.type)
     else:

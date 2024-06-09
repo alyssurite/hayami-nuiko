@@ -180,6 +180,7 @@ async def pixiv_post(
     context: ContextTypes.DEFAULT_TYPE,
     data: UserData,
     text: str,
+    above: bool = False,
 ) -> None:
     notify(update, function="pixiv_post")
     art = data.info
@@ -210,6 +211,7 @@ async def pixiv_post(
             order=ids,
             style=data.pixiv,
             chat_id=data.chan,
+            above=above,
         ):
             log.info("Pixiv Post: Successfully posted to channel.")
             if data.pixiv not in (

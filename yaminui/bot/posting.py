@@ -71,6 +71,7 @@ async def just_posting_twitter(
             if link.illust
             else None
         ),
+        above=link.above,
     ):
         log.info("Post: Successfully forwarded to channel.")
         if data.twitter != TwitterStyle.LINK:
@@ -140,7 +141,7 @@ async def just_posting_pixiv(
 ) -> PostingResult:
     if link.illust:
         data.info = art
-        return await pixiv_post(update, context, data, link.illust)
+        return await pixiv_post(update, context, data, link.illust, link.above)
     if len(art["links"]) == 1 or data.pixiv in (
         PixivStyle.INFO_LINK,
         PixivStyle.INFO_EMBED_LINK,
@@ -150,6 +151,7 @@ async def just_posting_pixiv(
             info=art,
             style=data.pixiv,
             chat_id=data.chan,
+            above=link.above,
         ):
             log.info("Post: Successfully forwarded to channel.")
             if data.pixiv not in (

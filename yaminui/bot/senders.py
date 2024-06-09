@@ -143,7 +143,11 @@ async def send_warn(update: Update, link: Link, **kwargs) -> Message:
     """
     posted = await get_other_links(link.id, link.type)
     text = ", and ".join([f"[here]({esc(post)})" for post in posted])
-    url = f"{link.link}{'+' + link.illust if link.illust else ''}"
+    url = (
+        f"{link.link}"
+        f"{'+' + link.illust if link.illust else ''}"
+        f"{'!' if link.above else ''}"
+    )
     return await send_reply(
         update,
         f"This [artwork]({esc(url)}) was already posted\\: {text}\\.\n\n"
@@ -235,6 +239,7 @@ async def send_media(
     *,
     order: list[int] = None,
     style: int = None,
+    above: bool = False,
     **kwargs,
 ) -> Optional[Message]:
     """Sends media as media group
@@ -244,6 +249,7 @@ async def send_media(
         info (dict): art media dictionary
         order (list[int], optional): which artworks to upload. Defaults to None.
         style (int, optional): pixiv style. Defaults to None.
+        above (bool, optional): show description above the image. Defaults to False.
 
     Returns:
         Optional[Message]: Telegram Message
@@ -297,6 +303,7 @@ async def send_media(
                     filename=filename,
                     caption=caption if not idx else None,
                     parse_mode=parse_mode if not idx else None,
+                    show_caption_above_media=above,
                 )
             )
         else:
@@ -306,6 +313,7 @@ async def send_media(
                     filename=filename,
                     caption=caption if not idx else None,
                     parse_mode=parse_mode if not idx else None,
+                    show_caption_above_media=above,
                 )
             )
     # answer to pixiv artwork
