@@ -1,6 +1,5 @@
 """Helpers module"""
 import logging
-import os
 import re
 
 from typing import Optional
@@ -12,7 +11,7 @@ from psycopg2.errors import UniqueViolation
 from sqlalchemy.exc import IntegrityError
 
 # telegram core bot api
-from telegram import Update
+from telegram import ChatMemberAdministrator, MessageOrigin, MessageOriginChannel, Update
 
 # telegram constants
 from telegram.constants import ChatMemberStatus as CMS
@@ -30,7 +29,7 @@ from ..api import PixivStyle
 from ..db import Session
 
 # database getters
-from ..db.getters import get_artwork, get_channel
+from ..db.getters import check_channel, get_artwork
 
 # database models
 from ..db.models import ArtWork, Channel, Post, User
@@ -54,6 +53,11 @@ from .utils import extract_media_ids
 log = logging.getLogger(__name__)
 
 
+async def check_if_owned(channel_id: int):
+    with Session() as session:
+        return bool((chan := session.get(Channel, channel_id)) and chan.admin)
+
+
 async def channel_check(
     update: Update,
     context: ContextTypes.DEFAULT_TYPE,
@@ -67,86 +71,106 @@ async def channel_check(
     Returns:
         Optional[int]: ConversationHandler state
     """
-    if chat := update.effective_message.forward_from_chat:
-        if chat.type == "supergroup":
-            await send_error(update, "This message is from a supergroup\\.")
-            log.error("Channel: This message is from a supergroup.")
-            return
-        with Session() as session:
-            if (chan := session.get(Channel, chat.id)) and chan.admin:
-                await send_error(update, "This channel is *already* owned\\.")
-                log.error("Channel: [%s] is already owned.", chat.id)
-                return
-        await send_reply(
-            update,
-            "*Seems fine\\!* ✨\nChecking for *admin rights*\\.\\.\\.",
-        )
-        bot_id = int(os.getenv("TOKEN").split(":")[0])
-        user_id = update.effective_chat.id
-        try:
-            if not (
-                (bot := await chat.get_member(bot_id))
-                and bot.status == CMS.ADMINISTRATOR
-                and bot.can_post_messages
-            ):
-                await send_error(
-                    update,
-                    "The bot *is not an admin* of this channel or *can't post*"
-                    " in this channel\\!",
-                )
-                log.error("Channel: No appropriate admin rights for bot.")
-                return
-        except Forbidden:
+    forward_origin = update.effective_message.forward_origin
+    if not forward_origin:
+        await send_error(update, "This message is not forwarded\\.")
+        log.error("Channel: This message is not forwarded.")
+        return
+    if forward_origin.type != MessageOrigin.CHANNEL:
+        await send_error(update, "This message is not from channel\\.")
+        log.error("Channel: This message is not from channel.")
+        return
+    forward_origin_channel: MessageOriginChannel = forward_origin
+    if not (channel := forward_origin_channel.chat):
+        await send_error(update, "This channel is not available\\.")
+        log.error("Channel: This channel is not available.")
+        return
+    if await check_if_owned(channel.id):
+        await send_error(update, "This channel is *already* owned\\.")
+        log.error("Channel: [%s] is already owned.", channel.id)
+        return
+    try:
+        if not (bot := await channel.get_member(context.bot.id)):
             await send_error(
                 update,
-                "The bot *was kicked* from this channel\\!",
+                "The bot *is not a member* of this channel of this channel\\!",
             )
-            log.error("Channel: The bot was kicked from this channel.")
+            log.error("Channel: The bot is not a member of this channel.")
             return
-        if not (
-            (admin := await chat.get_member(user_id))
-            and admin.status in (CMS.OWNER, CMS.ADMINISTRATOR)
-        ):
-            await send_error(
-                update,
-                "You *are not an admin* of this channel\\!",
-            )
-            log.error("Channel: No admin rights for user.")
-            return
-        with Session.begin() as session:
-            # get current user
-            user = session.get(User, user_id)
-            # remove old channel
-            if chan:
-                # channel already exist
-                user.channel = chan
-            else:
-                # channel doesn't exist
-                user.channel = None
-                # create new channel
-                session.add(
-                    Channel(
-                        id=chat.id,
-                        name=chat.title,
-                        link=chat.username,
-                        is_admin=True,
-                        admin=user,
-                    )
-                )
-        # remove from banned list
-        await get_channel.cache.set(chat.id, True)
-        await send_reply(
+    except Forbidden:
+        await send_error(
             update,
-            "*Done\\!* 🎉\n*Your channel* is added to the database\\!",
+            "The bot *was kicked* from this channel\\!",
         )
-        del context.user_data[BotState.CHANNEL]
-        return ConversationHandler.END
-    await send_error(
+        log.error("Channel: The bot was kicked from this channel.")
+        return
+    # done with basic checks
+    await send_reply(
         update,
-        "Please, *forward* a message from *your channel*\\.",
+        "*Seems fine\\!* ✨\nChecking for *bot admin rights*\\.\\.\\.",
     )
-    log.error("Channel: This message is from a user.")
-    return
+    log.info("Channel: [%s] passed basic checks. Checking admin rights...", channel.id)
+    if bot.status != CMS.ADMINISTRATOR:
+        await send_error(
+            update,
+            "The bot *is not an admin* of this channel\\!",
+        )
+        log.error("Channel: The bot is not an admin of this channel.")
+        return
+    bot_admin: ChatMemberAdministrator = bot
+    if not bot_admin.can_post_messages:
+        await send_error(
+            update,
+            "The bot *can't post* in this channel\\!",
+        )
+        log.error("Channel: The bot can't post in this channel.")
+        return
+    # done with admin bot checks
+    if not (
+        (admin := await channel.get_member(update.effective_chat.id))
+        and admin.status in (CMS.OWNER, CMS.ADMINISTRATOR)
+    ):
+        await send_error(
+            update,
+            "You *are not an admin* of this channel\\!",
+        )
+        log.error("Channel: The user is not an admin in this channel.")
+        return
+    # done with admin bot checks
+    await send_reply(
+        update,
+        "*Alright\\!* 💫\nAdding *your channel* to the *database*\\.\\.\\.",
+    )
+    # add channel to database
+    with Session.begin() as session:
+        # get current user
+        user = session.get(User, update.effective_chat.id)
+        # remove old channel
+        if db_channel := session.get(Channel, channel.id):
+            # channel already exist
+            user.channel = db_channel
+        else:
+            # channel doesn't exist
+            user.channel = None
+            # create new channel
+            session.add(
+                Channel(
+                    id=channel.id,
+                    name=channel.title,
+                    link=channel.username,
+                    is_admin=True,
+                    admin=user,
+                )
+            )
+    # remove from banned list
+    await check_channel.cache.set(channel.id, True)
+    await send_reply(
+        update,
+        "*Done\\!* 🎉\n*Your channel* is added to the *database*\\!",
+    )
+    log.info("Channel: [%s] successfully added to database.", channel.id)
+    del context.user_data[BotState.CHANNEL]
+    return ConversationHandler.END
 
 
 async def pixiv_save(update: Update, art: dict = None) -> None:

@@ -6,7 +6,7 @@ import logging
 from datetime import timezone as tz
 
 # telegram core bot api
-from telegram import Update
+from telegram import MessageOrigin, Update
 
 # telegram core bot api extension
 from telegram.ext import ContextTypes
@@ -142,11 +142,10 @@ async def just_forwarding_group(
 ) -> None:
     notify(update, function="just_forwarding_group")
     job_queue = context.job_queue
-    media_group_id, message_id, chat_id, source_chat = (
+    media_group_id, message_id, chat_id = (
         update.effective_message.media_group_id,  # used as job name
         update.effective_message.message_id,
         update.effective_chat.id,
-        update.effective_message.forward_from_chat,
     )
     # check if there's links in message
     if not links:
@@ -180,8 +179,10 @@ async def just_forwarding_group(
         log.info("Forward Group: Used ArtWork: %s.", art_dict)
     # check if it's forwarded from channel in database
     with Session() as session:
-        if source_chat:
-            if channel := session.get(Channel, source_chat.id):
+        if update.effective_message.forward_origin.type == MessageOrigin.CHANNEL and (
+            source := update.effective_message.forward_origin.chat
+        ):
+            if channel := session.get(Channel, source.id):
                 if channel.id == data.chan:
                     await send_error(update, "You shouldn't *self\\-forward*\\!")
                     log.error("Forward Group: Self-forwarding is not allowed.")
@@ -249,7 +250,9 @@ async def just_forwarding(
         log.info("Forward: Used ArtWork: %s.", art_dict)
     # check if it's forwarded from channel in database
     with Session() as session:
-        if source := update.effective_message.forward_from_chat:
+        if update.effective_message.forward_origin.type == MessageOrigin.CHANNEL and (
+            source := update.effective_message.forward_origin.chat
+        ):
             if channel := session.get(Channel, source.id):
                 if channel.id == data.chan:
                     await send_error(update, "You shouldn't *self\\-forward*\\!")

@@ -29,7 +29,7 @@ log = logging.getLogger(__name__)
 
 
 @cached(ttl=None, key_builder=lambda *args: args[1])
-async def get_user(user_id: int) -> bool:
+async def check_user(user_id: int) -> bool:
     """Checks if user in database.
 
     Args:
@@ -43,7 +43,7 @@ async def get_user(user_id: int) -> bool:
 
 
 @cached(ttl=None, key_builder=lambda *args: args[1])
-async def get_channel(channel_id: int) -> bool:
+async def check_channel(channel_id: int) -> bool:
     """Checks if channel in database.
 
     Args:
