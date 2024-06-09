@@ -1,5 +1,6 @@
 """Upload module"""
 import logging
+import os
 
 from base64 import urlsafe_b64encode
 from pathlib import Path
@@ -41,6 +42,9 @@ async def upload(
     Returns:
         bool: did uploading succeed or not
     """
+    if os.getenv("LOCAL"):
+        log.info("Running in local mode, skipping...")
+        return
     log.info("Uploading %s %r...", kind, name)
     params = {"name": name, "size": len(file)}
     if kind != "log file":
@@ -85,6 +89,9 @@ async def upload_media(
         user (int, optional): telegram user id. Defaults to 0.
         order (list[int], optional): which artworks to upload. Defaults to None.
     """
+    if os.getenv("LOCAL"):
+        log.info("Running in local mode, skipping...")
+        return
     if user != UPLOAD_LINKS["user"] or info is None:
         return  # silently exit
     if not UPLOAD_LINKS["media"]:
@@ -110,6 +117,9 @@ async def upload_media(
 
 async def upload_log() -> None:
     """Uploads log file to cloud"""
+    if os.getenv("LOCAL"):
+        log.info("Running in local mode, skipping...")
+        return
     if not FILE_HANDLER:
         return  # silently exit
     if not UPLOAD_LINKS["log"]:
