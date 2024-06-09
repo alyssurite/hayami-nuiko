@@ -8,7 +8,7 @@ from pathlib import Path
 from telegram import Update
 
 # telegram core bot api extension
-from telegram.ext import CallbackContext, ConversationHandler
+from telegram.ext import ContextTypes, ConversationHandler
 
 # pixiv & twiter styles
 from ..api import PixivStyle, TwitterStyle
@@ -35,7 +35,7 @@ log = logging.getLogger(__name__)
 HELP_MESSAGE = Path(os.environ["HELP_FILE"]).read_text(encoding="utf-8")
 
 
-async def command_start(update: Update, _: CallbackContext) -> None:
+async def command_start(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """Sends start message."""
     notify(update, command="/start")
     await update_chat(update.effective_chat)
@@ -47,13 +47,13 @@ async def command_start(update: Update, _: CallbackContext) -> None:
     )
 
 
-async def command_help(update: Update, _: CallbackContext) -> None:
+async def command_help(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """Sends help message."""
     notify(update, command="/help")
     await send_reply(update, text=HELP_MESSAGE)
 
 
-async def command_forward(update: Update, _: CallbackContext) -> None:
+async def command_forward(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """Toggles forwarding to channel."""
     notify(update, command="/forward")
     try:
@@ -62,31 +62,33 @@ async def command_forward(update: Update, _: CallbackContext) -> None:
         await send_error(update, "Set a /channel\\! Can't enable /forward\\.")
 
 
-async def command_reply(update: Update, _: CallbackContext) -> None:
+async def command_reply(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """Toggles replying to user's messages."""
     notify(update, command="/reply")
     await toggler(update, mode="Replying", field="reply_mode")
 
 
-async def command_media(update: Update, _: CallbackContext) -> None:
+async def command_media(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """Toggles adding video/gif to bare links."""
     notify(update, command="/media")
     await toggler(update, mode="Media", field="media_mode")
 
 
-async def command_pixiv_style(update: Update, context: CallbackContext) -> None:
+async def command_pixiv_style(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Changes (switches/cycles) Pixiv style."""
     notify(update, command="/pixiv_style")
     await change_style(update, style=PixivStyle, args=context.args)
 
 
-async def command_twitter_style(update: Update, context: CallbackContext) -> None:
+async def command_twitter_style(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     """Changes (switches/cycles) Twitter style."""
     notify(update, command="/twitter_style")
     await change_style(update, style=TwitterStyle, args=context.args)
 
 
-async def command_channel(update: Update, context: CallbackContext) -> int:
+async def command_channel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Starts process of adding user's channel to database."""
     notify(update, command="/channel")
     if context.user_data.get(BotState.CHANNEL, None):
@@ -105,7 +107,7 @@ async def command_channel(update: Update, context: CallbackContext) -> int:
     return BotState.CHANNEL
 
 
-async def command_cancel(update: Update, context: CallbackContext) -> int:
+async def command_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancels and ends conversation."""
     notify(update, command="/cancel")
     if context.user_data.get(BotState.CHANNEL, None):

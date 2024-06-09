@@ -21,7 +21,7 @@ from telegram import Update
 from telegram.constants import ParseMode as PM
 
 # telegram core bot api extension
-from telegram.ext import CallbackContext
+from telegram.ext import ContextTypes
 
 # pixiv & twitter styles, link types
 from ..api import LinkType, PixivStyle, TwitterStyle
@@ -123,7 +123,7 @@ async def get_forward_ids(post_id: int, channel_id: int, message: Message) -> li
 
 async def answer_query_twitter(
     update: Update,
-    context: CallbackContext,
+    context: ContextTypes.DEFAULT_TYPE,
     data: UserData,
     art: dict,
     post_dict: dict,
@@ -173,7 +173,7 @@ async def answer_query_twitter(
 
 async def answer_query_pixiv(
     update: Update,
-    context: CallbackContext,
+    context: ContextTypes.DEFAULT_TYPE,
     data: UserData,
     art: dict,
     post_dict: dict,
@@ -238,7 +238,7 @@ def convert_entities_to_links(update: Update):
 
 async def answer_query_post(
     update: Update,
-    context: CallbackContext,
+    context: ContextTypes.DEFAULT_TYPE,
     data: UserData,
     out: Link = None,
 ) -> None:
@@ -289,7 +289,7 @@ async def answer_query_post(
 
 async def answer_query_repost(
     update: Update,
-    context: CallbackContext,
+    context: ContextTypes.DEFAULT_TYPE,
     data: UserData,
     out: Link = None,
 ) -> None:
@@ -359,7 +359,7 @@ async def answer_query_repost(
     return result
 
 
-async def answer_query(update: Update, context: CallbackContext) -> None:
+async def answer_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     notify(update, command="answer_query")
     # answer callback query
     await update.callback_query.answer()

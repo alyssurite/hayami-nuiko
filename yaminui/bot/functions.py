@@ -7,7 +7,7 @@ import re
 from telegram import Update
 
 # telegram core bot api extension
-from telegram.ext import CallbackContext
+from telegram.ext import ContextTypes
 
 # pixiv styles, link types
 from ..api import LinkType
@@ -52,12 +52,12 @@ pixiv_regex = re.compile(r"^((?:\d+)(?:-\d+)?[.,\s]*){1,10}$")
 queue = asyncio.Queue(QUEUE_SIZE)
 
 
-async def universal(update: Update, context: CallbackContext) -> None:
+async def universal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Universal function for handling posting
 
     Args:
         update (Update): current update
-        context (CallbackContext): current context
+        context (ContextTypes.DEFAULT_TYPE): current context
     """
     notify(update, command="universal")
     # update & get user data
@@ -120,7 +120,7 @@ async def universal(update: Update, context: CallbackContext) -> None:
         await queue.get()
 
 
-async def handle_post(update: Update, _: CallbackContext) -> None:
+async def handle_post(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """Handles posts in channel"""
     notify(update, command="handle_post")
     # update channel

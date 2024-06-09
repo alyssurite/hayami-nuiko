@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from telegram import Update
 
 # telegram core bot api extension
-from telegram.ext import CallbackContext
+from telegram.ext import ContextTypes
 
 # pixiv & twitter styles, link types
 from ..api import LinkType, PixivStyle, TwitterStyle
@@ -56,7 +56,7 @@ ALERT_ID = int(os.environ["ALERT_ID"])
 
 async def just_posting_twitter(
     update: Update,
-    context: CallbackContext,
+    context: ContextTypes.DEFAULT_TYPE,
     data: UserData,
     art: dict,
     link: Link,
@@ -133,7 +133,7 @@ async def just_posting_twitter(
 
 async def just_posting_pixiv(
     update: Update,
-    context: CallbackContext,
+    context: ContextTypes.DEFAULT_TYPE,
     data: UserData,
     art: dict,
     link: Link,
@@ -214,7 +214,7 @@ async def just_posting_pixiv(
 
 async def just_posting(
     update: Update,
-    context: CallbackContext,
+    context: ContextTypes.DEFAULT_TYPE,
     data: UserData,
     links: list[Link],
 ) -> None:

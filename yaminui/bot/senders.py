@@ -23,7 +23,7 @@ from telegram.constants import ParseMode as PM
 from telegram.error import RetryAfter, TimedOut
 
 # telegram core bot api extension
-from telegram.ext import CallbackContext
+from telegram.ext import ContextTypes
 
 # hardcore retrying
 from tenacity import AsyncRetrying, RetryCallState, before_sleep_log, stop_after_attempt
@@ -188,7 +188,7 @@ async def send_reply_post(
 
 @retry_sending
 async def send_post(
-    context: CallbackContext,
+    context: ContextTypes.DEFAULT_TYPE,
     *,
     parse_mode: str = None,
     info: dict = None,
@@ -198,7 +198,7 @@ async def send_post(
     """Send post to channel
 
     Args:
-        context (CallbackContext): current context
+        context (ContextTypes.DEFAULT_TYPE): current context
         info (dict): art media dictionary
         text (str): text to send
 
@@ -230,7 +230,7 @@ async def escape_all(post: dict[str], kind: str):
 
 @retry_sending
 async def send_media(
-    context: CallbackContext,
+    context: ContextTypes.DEFAULT_TYPE,
     info: dict,
     *,
     order: list[int] = None,
@@ -240,7 +240,7 @@ async def send_media(
     """Sends media as media group
 
     Args:
-        context (CallbackContext): current context
+        context (ContextTypes.DEFAULT_TYPE): current context
         info (dict): art media dictionary
         order (list[int], optional): which artworks to upload. Defaults to None.
         style (int, optional): pixiv style. Defaults to None.
@@ -321,7 +321,7 @@ async def send_media(
 
 @retry_sending
 async def send_media_doc(
-    context: CallbackContext,
+    context: ContextTypes.DEFAULT_TYPE,
     info: dict,
     *,
     media_filter: list[str] = None,
@@ -332,7 +332,7 @@ async def send_media_doc(
     """Send media as documents
 
     Args:
-        context (CallbackContext): current context
+        context (ContextTypes.DEFAULT_TYPE): current context
         info (dict): art media dictionary
         media_filter (list[str], optional): types to send. Defaults to None.
         channel_mode (bool, optional): don't send document, send media.

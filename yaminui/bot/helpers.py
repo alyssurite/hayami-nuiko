@@ -21,7 +21,7 @@ from telegram.constants import ChatMemberStatus as CMS
 from telegram.error import Forbidden
 
 # telegram core bot api extension
-from telegram.ext import CallbackContext, ConversationHandler
+from telegram.ext import ContextTypes, ConversationHandler
 
 # pixiv & twitter styles, link types
 from ..api import PixivStyle
@@ -56,13 +56,13 @@ log = logging.getLogger(__name__)
 
 async def channel_check(
     update: Update,
-    context: CallbackContext,
+    context: ContextTypes.DEFAULT_TYPE,
 ) -> Optional[int]:
     """Checks if channel is a valid choice
 
     Args:
         update (Update): current update
-        context (CallbackContext): current context
+        context (ContextTypes.DEFAULT_TYPE): current context
 
     Returns:
         Optional[int]: ConversationHandler state
@@ -177,7 +177,7 @@ async def pixiv_save(update: Update, art: dict = None) -> None:
 
 async def pixiv_post(
     update: Update,
-    context: CallbackContext,
+    context: ContextTypes.DEFAULT_TYPE,
     data: UserData,
     text: str,
 ) -> None:

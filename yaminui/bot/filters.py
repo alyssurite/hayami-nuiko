@@ -5,13 +5,13 @@ import os
 from telegram import Chat, Update
 
 # telegram core bot api extension
-from telegram.ext import ApplicationHandlerStop, CallbackContext
+from telegram.ext import ApplicationHandlerStop, ContextTypes
 
 # database getters
 from ..db.getters import get_channel, get_user
 
 
-async def filter_out(update: Update, context: CallbackContext):
+async def filter_out(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Essentially this function provides a ban."""
     chat_id = update.effective_chat.id
     if update.effective_chat.type == Chat.PRIVATE and await get_user(chat_id):

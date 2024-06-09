@@ -9,7 +9,7 @@ from datetime import timezone as tz
 from telegram import Update
 
 # telegram core bot api extension
-from telegram.ext import CallbackContext
+from telegram.ext import ContextTypes
 
 # link types
 from ..api import LinkType
@@ -59,7 +59,7 @@ async def get_message_date(chat_id: int, message_id: int):
     return (await pyro_app.get_messages(chat_id, message_id)).date.astimezone(tz.utc)
 
 
-async def media_group_sender(context: CallbackContext):
+async def media_group_sender(context: ContextTypes.DEFAULT_TYPE):
     notify(context.job.data["update"], group_sender=context.job.data)
     # get all the data
     data = context.job.data
@@ -136,7 +136,7 @@ async def get_posted(update: Update, data: UserData, link: Link) -> None:
 
 async def just_forwarding_group(
     update: Update,
-    context: CallbackContext,
+    context: ContextTypes.DEFAULT_TYPE,
     data: UserData,
     links: list[Link] = None,
 ) -> None:
@@ -219,7 +219,7 @@ async def just_forwarding_group(
 
 async def just_forwarding(
     update: Update,
-    context: CallbackContext,
+    context: ContextTypes.DEFAULT_TYPE,
     data: UserData,
     links: list[Link],
 ) -> None:
@@ -308,7 +308,7 @@ async def just_forwarding(
 
 async def no_forwarding(
     update: Update,
-    context: CallbackContext,
+    context: ContextTypes.DEFAULT_TYPE,
     data: UserData,
     links: list[Link],
 ) -> None:
