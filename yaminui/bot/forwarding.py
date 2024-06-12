@@ -179,8 +179,10 @@ async def just_forwarding_group(
         log.info("Forward Group: Used ArtWork: %s.", art_dict)
     # check if it's forwarded from channel in database
     with Session() as session:
-        if update.effective_message.forward_origin.type == MessageOrigin.CHANNEL and (
-            source := update.effective_message.forward_origin.chat
+        if (
+            update.effective_message.forward_origin
+            and update.effective_message.forward_origin.type == MessageOrigin.CHANNEL
+            and (source := update.effective_message.forward_origin.chat)
         ):
             if channel := session.get(Channel, source.id):
                 if channel.id == data.chan:
@@ -250,8 +252,10 @@ async def just_forwarding(
         log.info("Forward: Used ArtWork: %s.", art_dict)
     # check if it's forwarded from channel in database
     with Session() as session:
-        if update.effective_message.forward_origin.type == MessageOrigin.CHANNEL and (
-            source := update.effective_message.forward_origin.chat
+        if (
+            update.effective_message.forward_origin
+            and update.effective_message.forward_origin.type == MessageOrigin.CHANNEL
+            and (source := update.effective_message.forward_origin.chat)
         ):
             if channel := session.get(Channel, source.id):
                 if channel.id == data.chan:

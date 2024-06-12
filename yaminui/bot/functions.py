@@ -177,8 +177,10 @@ async def handle_post(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
             log.info("Handle Post: Already in database. Skipping...")
             return
         # check for source channel
-        if update.effective_message.forward_origin.type == MessageOrigin.CHANNEL and (
-            source := update.effective_message.forward_origin.chat
+        if (
+            update.effective_message.forward_origin
+            and update.effective_message.forward_origin.type == MessageOrigin.CHANNEL
+            and (source := update.effective_message.forward_origin.chat)
         ):
             if channel := session.get(Channel, source.id):
                 post_dict["forwarded_channel_id"] = channel.id
