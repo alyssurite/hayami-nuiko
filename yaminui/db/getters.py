@@ -138,3 +138,65 @@ async def get_user_data(update: Update) -> Optional[UserData]:
             user.last_info,
             user.channel.id if user.channel else 0,
         )
+
+
+async def get_user_channel(user_id: int) -> Optional[Channel]:
+    with Session() as session:
+        if not (user := session.get(User, user_id)):
+            log.error("User #%d is not found.", user_id)
+            return
+        if not (channel := user.channel):
+            log.info("User #%d has no channel attached!", user_id)
+            return
+        log.info("User #%d has attached channel #%d.", user_id, channel.id)
+        return channel
+
+
+async def get_channel_by_link(channel_link: str) -> Optional[Channel]:
+    with Session.begin() as session:
+        if channel_link.isnumeric():
+            # it's an id: 1183548293
+            # https://t.me/c/1183548293/60913
+            query = select(Channel).where(Channel.cid == int(channel_link))
+        else:
+            # it's a name: denkou
+            # https://t.me/denkou/60932
+            query = select(Channel).where(Channel.link == channel_link)
+        if not (channel := session.scalars(query).one_or_none()):
+            log.error("Couldn't find channel!")
+            return
+        log.info(
+            "Found channel: %s [%d]: %s.",
+            channel.name,
+            channel.id,
+            channel.link or "no link",
+        )
+        return channel
+
+
+async def get_post_by_uix_post(channel_id: int, channel_post_id: int) -> Optional[Post]:
+    with Session.begin() as session:
+        if not (channel := session.get(Channel, channel_id)):
+            log.error("Couldn't get post from unknown channel!")
+            return
+        posts = session.scalars(
+            select(Post).where(
+                Post.post_id == channel_post_id,
+                Post.channel_id == channel.id,
+            )
+        ).all()
+        if len(posts) == 0:
+            log.error("No posts!")
+            return
+        if len(posts) > 1:
+            log.critical("Impossible! More than one post found!")
+            return
+        post = posts[0]
+        log.info(
+            "Found post: #%d [ %d | %d ] %s.",
+            post.id,
+            post.channel_id,
+            post.post_id,
+            post.post_date,
+        )
+        return post

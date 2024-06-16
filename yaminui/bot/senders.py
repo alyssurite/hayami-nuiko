@@ -39,6 +39,7 @@ from ..bot.utils import get_post_link
 
 # database getters
 from ..db.getters import get_other_links
+from ..db.models import Post
 
 # downloading media
 from ..extra.download import download_media
@@ -131,6 +132,31 @@ async def send_error(update: Update, text: str, quote=True, **kwargs) -> Message
 
 
 @retry_sending
+async def send_post_info(update: Update, post: Post, **kwargs) -> Message:
+    """Reply to current message
+
+    Args:
+        update (Update): current update
+        text (str): text to send in markdown v2
+
+    Returns:
+        Message: Telegram Message
+    """
+    info = []
+    info.append("Post DB info:")
+    info.append(f"> *DB Record ID*: `{post.id}`")
+    info.append(f"> *Channel ID*: `{post.channel_id}`")
+    info.append(f"> *Post ID*: `{post.post_id}`")
+    info.append(f"> *Post DateTime*: `{post.post_date}`")
+    info.append(f"> *Artwork ID*: `{post.artwork_id}`")
+    info.append(f"> *Original\\?*: `{post.is_original}`")
+    info.append(f"> *Forwarded\\?*: `{post.is_forwarded}`")
+    info.append(f"> *Forwarded from*: `{post.forwarded_channel_id}`")
+    info.append(f"> *Link*: t\\.me/c/{-(post.channel_id + 10**12)}/{post.post_id}")
+    return await send_reply(update, "\n".join(info))
+
+
+@retry_sending
 async def send_warn(update: Update, link: Link, **kwargs) -> Message:
     """Reply to current message with warning
 
@@ -161,6 +187,40 @@ async def send_warn(update: Update, link: Link, **kwargs) -> Message:
         quote=True,
         **kwargs,
     )
+
+
+@retry_sending
+async def send_warn_delete(update: Update, post: Post, **kwargs) -> Message:
+    """Reply to current message with warning
+
+    Args:
+        update (Update): current update
+        link (Link): link to the artwork
+
+    Returns:
+        Message: Telegram Message
+    """
+    ...
+    # posted = await get_other_links(link.id, link.type)
+    # text = ", and ".join([f"[here]({esc(post)})" for post in posted])
+    # url = (
+    #     f"{link.link}"
+    #     f"{'+' + link.illust if link.illust else ''}"
+    #     f"{'!' if link.above else ''}"
+    # )
+    # return await send_reply(
+    #     update,
+    #     f"This [artwork]({esc(url)}) was already posted\\: {text}\\.\n\n"
+    #     "`\\[` ⚠️ *POST IT ANYWAY\\?* ⚠️ `\\]`",
+    #     reply_markup=InlineKeyboardMarkup(
+    #         [
+    #             [InlineKeyboardButton(text="♻️ Repost! ♻️", callback_data="repost")],
+    #             [InlineKeyboardButton(text="🚩 Post!  🚩", callback_data="post")],
+    #         ]
+    #     ),
+    #     quote=True,
+    #     **kwargs,
+    # )
 
 
 @retry_sending

@@ -19,11 +19,14 @@ from ..db.updaters import update_chat
 # bot states
 from . import BotState
 
+# helpers
+from .helpers import check_post, show_post_info
+
 # bot loggers
 from .loggers import notify
 
 # bot senders
-from .senders import send_error, send_reply
+from .senders import send_error, send_reply, send_warn_delete
 
 # bot switchers
 from .switchers import change_style, toggler
@@ -51,6 +54,22 @@ async def command_help(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """Sends help message."""
     notify(update, command="/help")
     await send_reply(update, text=HELP_MESSAGE)
+
+
+async def command_info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Gets post info."""
+    notify(update, command="/info")
+    await show_post_info(update, args=context.args)
+
+
+async def command_delete(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Deletes post."""
+    notify(update, command="/delete")
+    if not (post := await check_post(update, args=context.args)):
+        log.error("User can't delete this post or it can't be found!")
+        await send_error(update, "You can\\'t delete this post or it can\\'t be found\\!")
+        return
+    await send_warn_delete(update, post)
 
 
 async def command_forward(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:

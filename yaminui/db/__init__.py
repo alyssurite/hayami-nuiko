@@ -17,7 +17,7 @@ DB_URI = os.environ["DATABASE_URL"]
 ENGINE = create_engine(DB_URI, pool_pre_ping=True)
 
 # session factory
-Session = sessionmaker(ENGINE)
+Session = sessionmaker(ENGINE, expire_on_commit=False)
 
 
 # base class for declarative class definitions

@@ -25,8 +25,10 @@ from ..bot.answer_query import answer_query
 from ..bot.commands import (
     command_cancel,
     command_channel,
+    command_delete,
     command_forward,
     command_help,
+    command_info,
     command_media,
     command_pixiv_style,
     command_reply,
@@ -84,6 +86,24 @@ def create_bot_app() -> None:
             command="help",
             callback=command_help,
             block=False,
+        )
+    )
+
+    # get info
+    application.add_handler(
+        CommandHandler(
+            command="info",
+            callback=command_info,
+            block=False,
+        )
+    )
+
+    # get delete
+    application.add_handler(
+        CommandHandler(
+            command="delete",
+            callback=command_delete,
+            block=True,
         )
     )
 

@@ -3,6 +3,7 @@ import logging
 import re
 
 from typing import Optional
+from urllib.parse import parse_qs, urlparse
 
 # psql exceptions
 from psycopg2.errors import UniqueViolation
@@ -29,7 +30,13 @@ from ..api import PixivStyle
 from ..db import Session
 
 # database getters
-from ..db.getters import check_channel, get_artwork
+from ..db.getters import (
+    check_channel,
+    get_artwork,
+    get_channel_by_link,
+    get_post_by_uix_post,
+    get_user_channel,
+)
 
 # database models
 from ..db.models import ArtWork, Channel, Post, User
@@ -38,13 +45,21 @@ from ..db.models import ArtWork, Channel, Post, User
 from ..extra.upload import upload_media
 
 # bot states, pixiv number regexp, data dataclass, posting results
-from . import BotState, PostingResult, UserData, pixiv_number
+# escape markdown
+from . import BotState, PostingResult, UserData, esc, pixiv_number
 
 # bot loggers
 from .loggers import notify
 
 # bot senders
-from .senders import send_error, send_media, send_media_doc, send_reply, send_reply_post
+from .senders import (
+    send_error,
+    send_media,
+    send_media_doc,
+    send_post_info,
+    send_reply,
+    send_reply_post,
+)
 
 # bot utils
 from .utils import extract_media_ids
@@ -356,3 +371,87 @@ async def normalize_order(
         # return tuple(ids[:max_amount])
     log.info("Normalize Order: Result: %s.", ids)
     return tuple(ids)
+
+
+HTTP_LINK_REGEX = re.compile(
+    r"t\.me\/((?:c\/(?P<channel_id>\d+))|(?P<channel_link>[A-Za-z0-9_]+))\/(?P<post>\d+)\/?$"
+)
+TG_LINK_REGEX = re.compile(r"tg://(?:(?:resolve\?)|(?:privatepost\?))")
+
+
+async def show_post_info(update: Update, args: list[str]):
+    if not args:
+        log.error("No info to get info about.")
+        await send_error(
+            update,
+            "No info to get info about\\. You need to provide a link "
+            "Use this command like this\\:\n"
+            "`/info https\\://t.me/ura_kartinki/12991`",
+        )
+        return
+    for arg in args:
+        earg = esc(arg)
+        if match := re.search(HTTP_LINK_REGEX, arg):
+            # http://t.me/c/1183548293/60363
+            # https://t.me/denkou/60363
+            log.info("Found http post link: %s.", arg)
+            post_id = int(match.group("post"))
+            if not (
+                channel_link := match.group("channel_id") or match.group("channel_link")
+            ):
+                log.error("No channel info found in link!")
+                await send_error(update, f"No channel info found in link\\: {earg}")
+                continue
+            channel = await get_channel_by_link(channel_link)
+        elif match := re.search(TG_LINK_REGEX, arg):
+            # tg://resolve?domain=denkou&post=60363
+            # tg://privatepost?channel=1183548293&post=60363
+            log.info("Found tg post link: %s.", arg)
+            url = urlparse(arg)
+            query = parse_qs(url.query)
+            if post_id := query.get("post"):
+                try:
+                    post_id = int(post_id[0])
+                except ValueError:
+                    log.warning("Couldn't convert to integer.")
+                    await send_error(
+                        update, f"Couldn\\'t convert post id to integer\\: {earg}"
+                    )
+                    continue
+            if channel_link := query.get("domain") or query.get("channel"):
+                channel = await get_channel_by_link(channel_link[0])
+        else:
+            log.info("Doesn't look like link: %s.", arg)
+            log.info("Assuming it's post id.")
+            log.info("Trying to convert to integer...")
+            try:
+                post_id = int(arg)
+            except ValueError:
+                log.warning("Couldn't convert to integer.")
+                log.error("Unknown type of argument.")
+                await send_error(update, f"Unknown type of argument\\: {earg}")
+                continue
+            if not (channel := await get_user_channel(update.effective_user.id)):
+                await send_error(
+                    update,
+                    "Assumed you have channel attached, but none found\\. "
+                    f"Argument passed as your channel\\'s post id\\: {earg}",
+                )
+                continue
+        if not (post_id and channel):
+            if not post_id:
+                log.error("Couldn't get post id!")
+                await send_error(update, f"Couldn\\'t get post id\\: {earg}")
+            if not channel:
+                log.error("Couldn't get channel info!")
+                await send_error(update, f"Couldn\\'t get channel info\\: {earg}")
+            continue
+        log.info("Got info: [ %d | %d ].", channel.id, post_id)
+        if post := await get_post_by_uix_post(channel.id, post_id):
+            await send_post_info(update, post)
+            return
+        await send_reply(update, "No post found\\!")
+
+
+async def check_post(update: Update, args: list[str]):
+    ...
