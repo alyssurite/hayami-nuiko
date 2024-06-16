@@ -13,6 +13,9 @@ from telegram.ext import ContextTypes, ConversationHandler
 # pixiv & twiter styles
 from ..api import PixivStyle, TwitterStyle
 
+# database getters
+from ..db.getters import get_user_channel
+
 # database updaters
 from ..db.updaters import update_chat
 
@@ -20,13 +23,13 @@ from ..db.updaters import update_chat
 from . import BotState
 
 # helpers
-from .helpers import check_post, show_post_info
+from .helpers import check_post
 
 # bot loggers
 from .loggers import notify
 
 # bot senders
-from .senders import send_error, send_reply, send_warn_delete
+from .senders import send_error, send_post_info, send_reply, send_warn_delete
 
 # bot switchers
 from .switchers import change_style, toggler
@@ -59,17 +62,31 @@ async def command_help(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
 async def command_info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Gets post info."""
     notify(update, command="/info")
-    await show_post_info(update, args=context.args)
+    async for post in check_post(update, args=context.args):
+        if post:
+            await send_post_info(update, post)
 
 
 async def command_delete(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Deletes post."""
     notify(update, command="/delete")
-    if not (post := await check_post(update, args=context.args)):
-        log.error("User can't delete this post or it can't be found!")
-        await send_error(update, "You can\\'t delete this post or it can\\'t be found\\!")
+    if not (channel := await get_user_channel(update.effective_user.id)):
+        await send_error(update, "Assumed you have channel attached, but none found\\.")
         return
-    await send_warn_delete(update, post)
+    async for post in check_post(update, args=context.args):
+        if not post:
+            log.info("No post to delete.")
+            continue
+        if post.channel_id != channel.id:
+            log.error(
+                "User %d can't delete posts from channel %d!",
+                update.effective_user.id,
+                channel.id,
+            )
+            await send_error(update, "You don't own this channel\\!")
+            await send_post_info(update, post)
+            continue
+        await send_warn_delete(update, post)
 
 
 async def command_forward(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:

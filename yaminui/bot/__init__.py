@@ -120,12 +120,22 @@ pixiv_number = re.compile(r"((?P<n1>\d+)(?:-(?P<n2>\d+))?)")
 # telegram internal post link
 tg_post_link = "t.me/c/{cid}/{post_id}"
 
-# callback query result
-result_message = [
+# callback query result for duplicate
+duplicate_result = [
     "`\\[` *POST HAS BEEN POSTED\\.* `\\]`",
     "`\\[` *PLEASE, SPECIFY DATA\\.* `\\]`",
     "`\\[` *POST HAS BEEN REPOSTED\\.* `\\]`",
     "`\\[` *POST COULDN'T BE REPOSTED\\.* `\\]`",
     "`\\[` *POST COULDN'T BE SELF\\-REPOSTED\\.* `\\]`",
+    "`\\[` *????????????????????\\.* `\\]`",
+]
+
+# callback query result for delete
+delete_result = [
+    "`\\[` *POST HAS BEEN DELETED\\.* `\\]`",
+    "`\\[` *POST CAN'T BE FOUND\\.* `\\]`",
+    "`\\[` *POST CAN'T BE DELETED\\.* `\\]`",
+    "`\\[` *YOU CAN'T DELETE THIS POST\\.* `\\]`",
+    "`\\[` *ACTION HAS BEEN CANCELLED\\.* `\\]`",
     "`\\[` *????????????????????\\.* `\\]`",
 ]

@@ -76,6 +76,6 @@ async def change_style(update: Update, style: BaseStyle, args: list[str] = None)
         new_style = await switch_style(user_id, style, arg)
     await send_reply(
         update,
-        f"*{style.name} style* has been changed to\\:\n\n"
+        f"*{style.name} style* has been changed to:\n\n"
         f"{style.get_example(new_style)}",
     )

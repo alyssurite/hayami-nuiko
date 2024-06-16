@@ -176,12 +176,22 @@ async def send_warn(update: Update, link: Link, **kwargs) -> Message:
     )
     return await send_reply(
         update,
-        f"This [artwork]({esc(url)}) was already posted\\: {text}\\.\n\n"
+        f"This [artwork]({esc(url)}) was already posted: {text}\\.\n\n"
         "`\\[` ⚠️ *POST IT ANYWAY\\?* ⚠️ `\\]`",
         reply_markup=InlineKeyboardMarkup(
             [
-                [InlineKeyboardButton(text="♻️ Repost! ♻️", callback_data="repost")],
-                [InlineKeyboardButton(text="🚩 Post!  🚩", callback_data="post")],
+                [
+                    InlineKeyboardButton(
+                        text="♻️ Repost! ♻️",
+                        callback_data="duplicate:repost",
+                    ),
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="🚩 Post!  🚩",
+                        callback_data="duplicate:post",
+                    ),
+                ],
             ]
         ),
         quote=True,
@@ -201,26 +211,41 @@ async def send_warn_delete(update: Update, post: Post, **kwargs) -> Message:
         Message: Telegram Message
     """
     ...
-    # posted = await get_other_links(link.id, link.type)
-    # text = ", and ".join([f"[here]({esc(post)})" for post in posted])
-    # url = (
-    #     f"{link.link}"
-    #     f"{'+' + link.illust if link.illust else ''}"
-    #     f"{'!' if link.above else ''}"
-    # )
-    # return await send_reply(
-    #     update,
-    #     f"This [artwork]({esc(url)}) was already posted\\: {text}\\.\n\n"
-    #     "`\\[` ⚠️ *POST IT ANYWAY\\?* ⚠️ `\\]`",
-    #     reply_markup=InlineKeyboardMarkup(
-    #         [
-    #             [InlineKeyboardButton(text="♻️ Repost! ♻️", callback_data="repost")],
-    #             [InlineKeyboardButton(text="🚩 Post!  🚩", callback_data="post")],
-    #         ]
-    #     ),
-    #     quote=True,
-    #     **kwargs,
-    # )
+    hard_link = f"t.me/c/{-(post.channel_id + 10**12)}/{post.post_id}"
+    if post.channel.link:
+        view_link = f"t.me/{post.channel.link}/{post.post_id}"
+    else:
+        view_link = hard_link
+    return await send_reply(
+        update,
+        f"Are you sure you want to delete [*this post*]({view_link})\\? "
+        f"[🔗]({hard_link})\n\n"
+        "*Note*: This action will delete this post from database and your channel\\. "
+        "If there're several pictures/videos, all of them will be deleted too\\!\n\n"
+        "`\\[` ⚠️ *DELETE POST\\?* ⚠️ `\\]`",
+        reply_markup=InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton(
+                        text="⭕ YES",
+                        callback_data=f"delete:yes:{post.id}",
+                    ),
+                    InlineKeyboardButton(
+                        text="❌ NO!",
+                        callback_data=f"delete:no:{post.id}",
+                    ),
+                ],
+                [
+                    InlineKeyboardButton(
+                        text="⛔ CANCEL",
+                        callback_data=f"delete:cancel:{post.id}",
+                    )
+                ],
+            ]
+        ),
+        quote=True,
+        **kwargs,
+    )
 
 
 @retry_sending

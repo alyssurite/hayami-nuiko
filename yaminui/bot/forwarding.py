@@ -302,7 +302,7 @@ async def just_forwarding(
             else:
                 await send_error(
                     update,
-                    "*Media mode*\\: Couldn't get this content\\!",
+                    "*Media mode*: Couldn't get this content\\!",
                 )
                 log.warning("Forward: Couldn't reply with media.")
     # upload to cloud
@@ -325,7 +325,7 @@ async def no_forwarding(
         if not (art := await get_links(link)):
             await send_error(
                 update,
-                f"[This content]({link.link}) can\\'t be found or "
+                f"[This content]({link.link}) can't be found or "
                 "downloaded\\. If this seems to be wrong, try again later\\.",
             )
             log.error("No Forward: Couldn't get content: %r.", link.link)

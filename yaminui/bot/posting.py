@@ -107,7 +107,7 @@ async def just_posting_twitter(
                         if not is_deleted
                     ]
                 )
-                await send_error(f"Failed to delete double-post\\: {text}\\.")
+                await send_error(f"Failed to delete double-post: {text}\\.")
             return
         log.info("Post: Inserted ArtWork: %s.", art_dict)
         log.info("Post: Inserted Post: %s.", post_dict)
@@ -190,7 +190,7 @@ async def just_posting_pixiv(
                             if not is_deleted
                         ]
                     )
-                    await send_error(f"Failed to delete double-post\\: {text}\\.")
+                    await send_error(f"Failed to delete double-post: {text}\\.")
             log.info("Post: Inserted ArtWork: %s.", art_dict)
             log.info("Post: Inserted Post: %s.", post_dict)
             if data.reply:
@@ -244,7 +244,7 @@ async def just_posting(
         if not (art := await get_links(link)):
             await send_error(
                 update,
-                f"[This content]({link.link}) can\\'t be found or "
+                f"[This content]({link.link}) can't be found or "
                 "downloaded\\. If this seems to be wrong, try again later\\.",
             )
             log.error("Post: Couldn't get content: %r.", link.link)

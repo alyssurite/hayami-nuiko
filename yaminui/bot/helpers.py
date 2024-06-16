@@ -8,6 +8,12 @@ from urllib.parse import parse_qs, urlparse
 # psql exceptions
 from psycopg2.errors import UniqueViolation
 
+# pyrogram errors
+from pyrogram.errors import MessageDeleteForbidden, RPCError
+
+# pyrogram types
+from pyrogram.types import Message
+
 # sqlaclhemy exceptions
 from sqlalchemy.exc import IntegrityError
 
@@ -34,6 +40,7 @@ from ..db.getters import (
     check_channel,
     get_artwork,
     get_channel_by_link,
+    get_post,
     get_post_by_uix_post,
     get_user_channel,
 )
@@ -46,20 +53,14 @@ from ..extra.upload import upload_media
 
 # bot states, pixiv number regexp, data dataclass, posting results
 # escape markdown
-from . import BotState, PostingResult, UserData, esc, pixiv_number
+# import pyrogram client
+from . import BotState, PostingResult, UserData, esc, pixiv_number, pyro_app
 
 # bot loggers
 from .loggers import notify
 
 # bot senders
-from .senders import (
-    send_error,
-    send_media,
-    send_media_doc,
-    send_post_info,
-    send_reply,
-    send_reply_post,
-)
+from .senders import send_error, send_media, send_media_doc, send_reply, send_reply_post
 
 # bot utils
 from .utils import extract_media_ids
@@ -209,7 +210,7 @@ async def pixiv_save(update: Update, art: dict = None) -> None:
     # prompt user to choose illustrations
     await send_reply(
         update,
-        "Please, choose illustrations to download\\: "
+        "Please, choose illustrations to download: "
         f'\\[`1`\\-`{len(art["links"])}`\\]\\.',
     )
 
@@ -364,7 +365,7 @@ async def normalize_order(
     if len(ids) > max_amount:
         await send_error(
             update,
-            f"You *can\\'t* choose more than {max_amount} files\\!",
+            f"You *can't* choose more than {max_amount} files\\!",
         )
         log.error("Normalize Order: More than %s files.", max_amount)
         return tuple()
@@ -374,19 +375,35 @@ async def normalize_order(
 
 
 HTTP_LINK_REGEX = re.compile(
-    r"t\.me\/((?:c\/(?P<channel_id>\d+))|(?P<channel_link>[A-Za-z0-9_]+))\/(?P<post>\d+)\/?$"
+    r"""(?x)
+        t\.me
+        \/
+        (?:
+            (?:c\/(?P<channel_id>\d+))
+            |
+            (?P<channel_link>[A-Za-z0-9_]+)
+        )
+        \/
+        (?P<post>\d+)
+        (?:
+            \/
+            |
+            (?:\?\w+)
+        )?
+        $
+    """
 )
 TG_LINK_REGEX = re.compile(r"tg://(?:(?:resolve\?)|(?:privatepost\?))")
 
 
-async def show_post_info(update: Update, args: list[str]):
+async def check_post(update: Update, args: list[str]):
     if not args:
         log.error("No info to get info about.")
         await send_error(
             update,
             "No info to get info about\\. You need to provide a link "
-            "Use this command like this\\:\n"
-            "`/info https\\://t.me/ura_kartinki/12991`",
+            "Use this command like this:\n"
+            "`/info https://t.me/ura_kartinki/12991`",
         )
         return
     for arg in args:
@@ -400,7 +417,7 @@ async def show_post_info(update: Update, args: list[str]):
                 channel_link := match.group("channel_id") or match.group("channel_link")
             ):
                 log.error("No channel info found in link!")
-                await send_error(update, f"No channel info found in link\\: {earg}")
+                await send_error(update, f"No channel info found in link: {earg}")
                 continue
             channel = await get_channel_by_link(channel_link)
         elif match := re.search(TG_LINK_REGEX, arg):
@@ -415,7 +432,7 @@ async def show_post_info(update: Update, args: list[str]):
                 except ValueError:
                     log.warning("Couldn't convert to integer.")
                     await send_error(
-                        update, f"Couldn\\'t convert post id to integer\\: {earg}"
+                        update, f"Couldn't convert post id to integer: {earg}"
                     )
                     continue
             if channel_link := query.get("domain") or query.get("channel"):
@@ -429,29 +446,101 @@ async def show_post_info(update: Update, args: list[str]):
             except ValueError:
                 log.warning("Couldn't convert to integer.")
                 log.error("Unknown type of argument.")
-                await send_error(update, f"Unknown type of argument\\: {earg}")
+                await send_error(update, f"Unknown type of argument: {earg}")
                 continue
             if not (channel := await get_user_channel(update.effective_user.id)):
                 await send_error(
                     update,
                     "Assumed you have channel attached, but none found\\. "
-                    f"Argument passed as your channel\\'s post id\\: {earg}",
+                    f"Argument passed as your channel's post id: {earg}",
                 )
                 continue
         if not (post_id and channel):
             if not post_id:
                 log.error("Couldn't get post id!")
-                await send_error(update, f"Couldn\\'t get post id\\: {earg}")
+                await send_error(update, f"Couldn't get post id: {earg}")
             if not channel:
                 log.error("Couldn't get channel info!")
-                await send_error(update, f"Couldn\\'t get channel info\\: {earg}")
+                await send_error(update, f"Couldn't get channel info: {earg}")
             continue
         log.info("Got info: [ %d | %d ].", channel.id, post_id)
-        if post := await get_post_by_uix_post(channel.id, post_id):
-            await send_post_info(update, post)
-            return
-        await send_reply(update, "No post found\\!")
+        if not (post := await get_post_by_uix_post(channel.id, post_id)):
+            await send_error(
+                update,
+                "No post found\\! Please send the link to the first picture\\.",
+            )
+            yield
+        else:
+            yield post
+    return
 
 
-async def check_post(update: Update, args: list[str]):
-    ...
+async def delete_post_from_everywhere(post_record_id: int, user_id: int):
+    if not (post := await get_post(post_record_id)):
+        log.error(
+            "[%d | %d] Post wasn't found.",
+            post_record_id,
+            user_id,
+        )
+        return 1
+    if not (channel := await get_user_channel(user_id)):
+        log.error(
+            "[%d | %d] Channel for user wasn't found.",
+            post_record_id,
+            user_id,
+        )
+        return 3
+    if channel.id != post.channel_id:
+        log.error(
+            "[%d | %d] User's channel is different: [%d].",
+            post_record_id,
+            user_id,
+            channel.id,
+        )
+        return 3
+    messages: list[Message] = await pyro_app.get_messages(
+        post.channel_id,
+        range(post.post_id, post.post_id + 10),
+    )
+    delete_messages = []
+    media_group_id = 0
+    for message in messages:
+        if not message.media_group_id:
+            # no media group = 1 picture, add just 1 post
+            if not media_group_id:
+                # add only if no media group was defined
+                delete_messages.append(message.id)
+            break
+        elif not media_group_id:
+            # no media group yet defined - add post and store media group
+            media_group_id = message.media_group_id
+            delete_messages.append(message.id)
+            continue
+        elif media_group_id == message.media_group_id:
+            # it's part of stored media group - add post
+            delete_messages.append(message.id)
+            continue
+        # stop if no more images are in media group
+        break
+    # delete from db
+    log.info("Deleting post from database...")
+    with Session.begin() as session:
+        session.delete(post)
+    log.info("Deleted post from database.")
+
+    # delete from channel
+    log.info("Deleting posts %s from channel...", delete_messages)
+    try:
+        affected = await pyro_app.delete_messages(post.channel_id, delete_messages)
+        log.info("Deleted posts from channel.")
+        if affected == len(delete_messages):
+            log.info("Affected check succeeded: %d.", affected)
+        else:
+            log.info("Affected check failed: %d != %d.", affected, len(delete_messages))
+    except MessageDeleteForbidden:
+        log.error("The bot can't delete this post!")
+        return 2
+    except RPCError as error:
+        log.error("Some shit happened. %s.", error)
+        return 2
+    return 0

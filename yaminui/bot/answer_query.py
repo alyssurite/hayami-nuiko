@@ -48,10 +48,10 @@ from ..db.models import Channel, Post
 from ..extra.upload import upload_media
 
 # user data dataclass and everything else
-from . import PostingResult, UserData, esc, pyro_app, result_message
+from . import PostingResult, UserData, delete_result, duplicate_result, esc, pyro_app
 
 # bot helpers
-from .helpers import pixiv_save
+from .helpers import delete_post_from_everywhere, pixiv_save
 
 # bot loggers
 from .loggers import notify
@@ -270,7 +270,7 @@ async def answer_query_post(
     if not (art := await get_links(art_link)):
         await send_error(
             update,
-            f"[This content]({link}) can\\'t be found or downloaded\\!"
+            f"[This content]({link}) can't be found or downloaded\\!"
             " If this seems to be wrong, try again later\\.",
         )
         log.error("Query Post: Couldn't get content: %r.", link)
@@ -382,6 +382,24 @@ async def answer_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
         log.error("Query: No data: <%d>.", update.effective_chat.id)
         return
+    # check query data
+    if not update.callback_query.data:
+        log.error("No query data??? Update: %r.", update.to_dict())
+        return
+    match update.callback_query.data.split(":")[0]:
+        case "duplicate":
+            await query_duplicate(update, context, data)
+        case "delete":
+            await query_delete(update, context, data)
+        case _:
+            await send_error(update, "Not implemented\\!")
+
+
+async def query_duplicate(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    data: UserData,
+) -> None:
     # check for forward mode
     if not data.forward:
         await send_error(
@@ -390,14 +408,14 @@ async def answer_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         )
         log.error("Query: Forwarding mode is turned off!")
         return
-    match update.callback_query.data:
+    match update.callback_query.data.split(":")[1]:
         case "repost":
             result = await answer_query_repost(update, context, data)
             # update text
             link, _, text = convert_entities_to_links(update)
             await update.effective_message.edit_text(
-                f"~This [artwork]({esc(link)}) was already posted\\:"
-                f" {text}~\\.\n\n{result_message[result]}",
+                f"~This [artwork]({esc(link)}) was already posted:"
+                f" {text}~\\.\n\n{duplicate_result[result]}",
                 parse_mode=PM.MARKDOWN_V2,
             )
         case "post":
@@ -405,10 +423,48 @@ async def answer_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             # update text
             link, _, text = convert_entities_to_links(update)
             await update.effective_message.edit_text(
-                f"~This [artwork]({esc(link)}) was already posted\\:"
-                f" {text}~\\.\n\n{result_message[result]}",
+                f"~This [artwork]({esc(link)}) was already posted:"
+                f" {text}~\\.\n\n{duplicate_result[result]}",
                 parse_mode=PM.MARKDOWN_V2,
             )
         case _:
             await send_error(update, "WTF\\?\\!")
-            log.error("Query: This is impossible.")
+
+
+async def query_delete(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    data: UserData,
+) -> None:
+    result = -1
+    match update.callback_query.data.split(":")[1]:
+        case "yes":
+            log.info("User chosed 'yes'. Action confirmed.")
+            post_id = int(update.callback_query.data.split(":")[2])
+            result = await delete_post_from_everywhere(post_id, update.effective_user.id)
+            if result == 2:
+                await send_error(
+                    update,
+                    "Post was deleted from database, but *Telegram* says that the bot "
+                    "can't delete it from channel\\. Please, delete it yourself\\.",
+                )
+        case "no":
+            log.info("User chosed 'no'. Action cancelled.")
+            result = 4
+        case "cancel":
+            log.info("User chosed 'cancel'. Action cancelled.")
+            result = 4
+        case _:
+            log.info("User chosed ???. WTF? Query data: %s.", update.callback_query.data)
+            await send_error(update, "WTF\\?\\!")
+            result = 5
+    # update text
+    text_parts = update.effective_message.text_markdown_v2.split("\n\n")
+    text = "\n\n".join(
+        (
+            f"~{text_parts[0]}~",
+            f"||{text_parts[1]}||",
+            delete_result[result],
+        )
+    )
+    await update.effective_message.edit_text(text, parse_mode=PM.MARKDOWN_V2)

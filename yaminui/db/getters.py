@@ -9,6 +9,9 @@ from aiocache import cached
 # working with database
 from sqlalchemy import select
 
+# loading strategies
+from sqlalchemy.orm import joinedload
+
 # telegram core bot api
 from telegram import Update
 
@@ -116,6 +119,11 @@ async def get_other_links(
         ]
 
 
+async def get_user(user_id: int) -> Optional[User]:
+    with Session() as session:
+        return session.get(User, user_id)
+
+
 async def get_user_data(update: Update) -> Optional[UserData]:
     """Get current user's current data.
 
@@ -174,16 +182,24 @@ async def get_channel_by_link(channel_link: str) -> Optional[Channel]:
         return channel
 
 
+async def get_post(record_id: int) -> Optional[Post]:
+    with Session() as session:
+        return session.get(Post, record_id)
+
+
 async def get_post_by_uix_post(channel_id: int, channel_post_id: int) -> Optional[Post]:
     with Session.begin() as session:
         if not (channel := session.get(Channel, channel_id)):
             log.error("Couldn't get post from unknown channel!")
             return
         posts = session.scalars(
-            select(Post).where(
+            select(Post)
+            .where(
                 Post.post_id == channel_post_id,
                 Post.channel_id == channel.id,
             )
+            .options(joinedload(Post.channel))
+            .options(joinedload(Post.artwork))
         ).all()
         if len(posts) == 0:
             log.error("No posts!")
