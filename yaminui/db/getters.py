@@ -151,7 +151,7 @@ async def get_user_data(update: Update) -> Optional[UserData]:
 async def get_user_channel(user_id: int) -> Optional[Channel]:
     with Session() as session:
         if not (user := session.get(User, user_id)):
-            log.error("User #%d is not found.", user_id)
+            log.warning("User #%d is not found.", user_id)
             return
         if not (channel := user.channel):
             log.info("User #%d has no channel attached!", user_id)
@@ -171,7 +171,7 @@ async def get_channel_by_link(channel_link: str) -> Optional[Channel]:
             # https://t.me/denkou/60932
             query = select(Channel).where(Channel.link == channel_link)
         if not (channel := session.scalars(query).one_or_none()):
-            log.error("Couldn't find channel!")
+            log.warning("Couldn't find channel!")
             return
         log.info(
             "Found channel: %s [%d]: %s.",
@@ -202,7 +202,7 @@ async def get_post_by_uix_post(channel_id: int, channel_post_id: int) -> Optiona
             .options(joinedload(Post.artwork))
         ).all()
         if len(posts) == 0:
-            log.error("No posts!")
+            log.warning("No posts!")
             return
         if len(posts) > 1:
             log.critical("Impossible! More than one post found!")

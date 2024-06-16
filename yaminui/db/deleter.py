@@ -36,7 +36,7 @@ async def delete_post_by_uix_post(
             )
         ).all()
         if len(posts) == 0:
-            log.error("No posts!")
+            log.warning("No posts!")
             return
         if len(posts) > 1:
             log.critical("Impossible! More than one post found!")
