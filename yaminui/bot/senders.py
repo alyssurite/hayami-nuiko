@@ -150,30 +150,44 @@ async def send_post_info(update: Update, post: Post, **kwargs) -> Message:
         else f"t\\.me/c/{post.channel.cid}/{post.post_id}"
     )
     info = []
-    info.append("`\[` ℹ *POST DB INFO* ℹ `\]`")
     info.append(f"*DB Record ID*: `{post.id}`")
-    info.append(f"*Channel ID*: `{post.channel_id}`")
+
+    # post
+    info.append("*Post info*:")
+    info.append(f"> *Post ID*: `{post.post_id}`")
+    info.append(f"> *Post DateTime*: `{post.post_date}`")
+    info.append(f"> *Original\\?*: `{post.is_original}`")
+    info.append(f"> *Forwarded\\?*: `{post.is_forwarded}`")
+
+    # channel
+    info.append("*Channel info*:")
+    info.append(f"> *Channel ID*: `{post.channel.cid}`")
+    # info.append(f"> *Channel Bot API ID*: `{post.channel.id}`")
     info.append(f"> *Channel name*: {esc(post.channel.name)}")
     info.append(f"> *Channel link*: {channel_link}")
     info.append(f"> *Channel owner*: `{post.channel.admin_id}`")
-    info.append(f"*Post ID*: `{post.post_id}`")
-    info.append(f"*Post DateTime*: `{post.post_date}`")
-    info.append(f"*Artwork ID*: `{post.artwork_id}`")
+
+    # artwork
+    info.append("*Artwork info*:")
+    info.append(f"> *Artwork ID*: `{post.artwork_id}`")
     info.append(f"> *Artwork type*: `{post.artwork.type}`")
     info.append(f"> *Artwork AID*: `{post.artwork.aid}`")
-    info.append(f"*Original\\?*: `{post.is_original}`")
-    info.append(f"*Forwarded\\?*: `{post.is_forwarded}`")
-    if post.is_forwarded:
-        info.append(f"*Forwarded from*: `{post.forwarded_channel_id}`")
-        if post.forwarded_channel_id:
-            forwarded_channel_link = (
-                f"t\\.me/{esc(post.forwarded_channel.link)}"
-                if post.forwarded_channel.link
-                else "`None`"
-            )
-            info.append(f"> *Channel name*: {post.forwarded_channel.name}")
-            info.append(f"> *Channel link*: {forwarded_channel_link}")
-            info.append(f"> *Channel owner*: `{post.forwarded_channel.admin_id}`")
+
+    # forward channel
+    if post.is_forwarded and post.forwarded_channel_id:
+        info.append("*Forwarded from channel*:")
+        forwarded_channel_link = (
+            f"t\\.me/{esc(post.forwarded_channel.link)}"
+            if post.forwarded_channel.link
+            else "`None`"
+        )
+        info.append(f"> *Channel ID*: `{post.forwarded_channel.cid}`")
+        # info.append(f"> *Channel Bot API ID*: `{post.forwarded_channel.id}`")
+        info.append(f"> *Channel name*: {post.forwarded_channel.name}")
+        info.append(f"> *Channel link*: {forwarded_channel_link}")
+        info.append(f"> *Channel owner*: `{post.forwarded_channel.admin_id}`")
+
+    # links
     info.append("")
     info.append(f"*Universal link*: t\\.me/c/{post.channel.cid}/{post.post_id}")
     if channel_link:
@@ -182,7 +196,7 @@ async def send_post_info(update: Update, post: Post, **kwargs) -> Message:
         update,
         "\n".join(info),
         link_preview_options=LinkPreviewOptions(
-            url=post_link,
+            url=f"https://{post_link}".replace("\\", ""),
             prefer_large_media=True,
             show_above_text=True,
         ),
