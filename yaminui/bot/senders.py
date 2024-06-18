@@ -142,17 +142,34 @@ async def send_post_info(update: Update, post: Post, **kwargs) -> Message:
     Returns:
         Message: Telegram Message
     """
+    channel_link = f"t\\.me/{post.channel.link}" if post.channel.link else "`None`"
     info = []
     info.append("Post DB info:")
-    info.append(f"> *DB Record ID*: `{post.id}`")
-    info.append(f"> *Channel ID*: `{post.channel_id}`")
-    info.append(f"> *Post ID*: `{post.post_id}`")
-    info.append(f"> *Post DateTime*: `{post.post_date}`")
-    info.append(f"> *Artwork ID*: `{post.artwork_id}`")
-    info.append(f"> *Original\\?*: `{post.is_original}`")
-    info.append(f"> *Forwarded\\?*: `{post.is_forwarded}`")
-    info.append(f"> *Forwarded from*: `{post.forwarded_channel_id}`")
-    info.append(f"> *Link*: t\\.me/c/{-(post.channel_id + 10**12)}/{post.post_id}")
+    info.append(f"*DB Record ID*: `{post.id}`")
+    info.append(f"*Channel ID*: `{post.channel_id}`")
+    info.append(f"> *Channel name*: {esc(post.channel.name)}")
+    info.append(f"> *Channel link*: {channel_link}")
+    info.append(f"> *Channel owner*: `{post.channel.admin_id}`")
+    info.append(f"*Post ID*: `{post.post_id}`")
+    info.append(f"*Post DateTime*: `{post.post_date}`")
+    info.append(f"*Artwork ID*: `{post.artwork_id}`")
+    info.append(f"> *Artwork type*: `{post.artwork.type}`")
+    info.append(f"> *Artwork AID*: `{post.artwork.aid}`")
+    info.append(f"*Original\\?*: `{post.is_original}`")
+    info.append(f"*Forwarded\\?*: `{post.is_forwarded}`")
+    info.append(f"*Forwarded from channel ID*: `{post.forwarded_channel_id}`")
+    if post.forwarded_channel_id:
+        forwarded_channel_link = (
+            f"t\\.me/{post.forwarded_channel.link}"
+            if post.forwarded_channel.link
+            else "`None`"
+        )
+        info.append(f"> *Channel name*: {post.forwarded_channel.name}")
+        info.append(f"> *Channel link*: {forwarded_channel_link}")
+        info.append(f"> *Channel owner*: `{post.forwarded_channel.admin_id}`")
+    info.append(f"*Universal link*: t\\.me/c/{post.channel.cid}/{post.post_id}")
+    if channel_link:
+        info.append(f"*Public link*: {channel_link}/{post.post_id}")
     return await send_reply(update, "\n".join(info))
 
 

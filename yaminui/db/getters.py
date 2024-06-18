@@ -200,6 +200,7 @@ async def get_post_by_uix_post(channel_id: int, channel_post_id: int) -> Optiona
             )
             .options(joinedload(Post.channel))
             .options(joinedload(Post.artwork))
+            .options(joinedload(Post.forwarded_channel))
         ).all()
         if len(posts) == 0:
             log.warning("No posts!")

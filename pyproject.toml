@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "Hayami Nuiko Telegram bot"
-version = "5.4"
+version = "6.0"
 description = "This is a bot for beautifying pixiv and twitter links in order to get clean links without any URI query garbage."
 authors = ["Alyss Mesh <alyssurite@yandex.ru>"]
 readme = "README.md"
