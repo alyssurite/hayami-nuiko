@@ -12,6 +12,7 @@ from telegram import (
     InputMediaDocument,
     InputMediaPhoto,
     InputMediaVideo,
+    LinkPreviewOptions,
     Message,
     Update,
 )
@@ -142,9 +143,14 @@ async def send_post_info(update: Update, post: Post, **kwargs) -> Message:
     Returns:
         Message: Telegram Message
     """
-    channel_link = f"t\\.me/{post.channel.link}" if post.channel.link else "`None`"
+    channel_link = f"t\\.me/{esc(post.channel.link)}" if post.channel.link else "`None`"
+    post_link = (
+        f"{channel_link}/{post.post_id}"
+        if post.channel.link
+        else f"t\\.me/c/{post.channel.cid}/{post.post_id}"
+    )
     info = []
-    info.append("Post DB info:")
+    info.append("`\[` ℹ *POST DB INFO* ℹ `\]`")
     info.append(f"*DB Record ID*: `{post.id}`")
     info.append(f"*Channel ID*: `{post.channel_id}`")
     info.append(f"> *Channel name*: {esc(post.channel.name)}")
@@ -157,20 +163,30 @@ async def send_post_info(update: Update, post: Post, **kwargs) -> Message:
     info.append(f"> *Artwork AID*: `{post.artwork.aid}`")
     info.append(f"*Original\\?*: `{post.is_original}`")
     info.append(f"*Forwarded\\?*: `{post.is_forwarded}`")
-    info.append(f"*Forwarded from channel ID*: `{post.forwarded_channel_id}`")
-    if post.forwarded_channel_id:
-        forwarded_channel_link = (
-            f"t\\.me/{post.forwarded_channel.link}"
-            if post.forwarded_channel.link
-            else "`None`"
-        )
-        info.append(f"> *Channel name*: {post.forwarded_channel.name}")
-        info.append(f"> *Channel link*: {forwarded_channel_link}")
-        info.append(f"> *Channel owner*: `{post.forwarded_channel.admin_id}`")
+    if post.is_forwarded:
+        info.append(f"*Forwarded from*: `{post.forwarded_channel_id}`")
+        if post.forwarded_channel_id:
+            forwarded_channel_link = (
+                f"t\\.me/{esc(post.forwarded_channel.link)}"
+                if post.forwarded_channel.link
+                else "`None`"
+            )
+            info.append(f"> *Channel name*: {post.forwarded_channel.name}")
+            info.append(f"> *Channel link*: {forwarded_channel_link}")
+            info.append(f"> *Channel owner*: `{post.forwarded_channel.admin_id}`")
+    info.append("")
     info.append(f"*Universal link*: t\\.me/c/{post.channel.cid}/{post.post_id}")
     if channel_link:
-        info.append(f"*Public link*: {channel_link}/{post.post_id}")
-    return await send_reply(update, "\n".join(info))
+        info.append(f"*Public link*: {post_link}")
+    return await send_reply(
+        update,
+        "\n".join(info),
+        link_preview_options=LinkPreviewOptions(
+            url=post_link,
+            prefer_large_media=True,
+            show_above_text=True,
+        ),
+    )
 
 
 @retry_sending
