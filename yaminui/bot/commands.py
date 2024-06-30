@@ -63,8 +63,7 @@ async def command_info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     """Gets post info."""
     notify(update, command="/info")
     async for post in check_post(update, args=context.args):
-        if post:
-            await send_post_info(update, post)
+        await send_post_info(update, post)
 
 
 async def command_delete(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

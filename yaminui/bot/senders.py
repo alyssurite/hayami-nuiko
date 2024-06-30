@@ -189,7 +189,7 @@ async def send_post_info(update: Update, post: Post, **kwargs) -> Message:
         )
         info.append(f"> *Channel ID*: `{post.forwarded_channel.cid}`")
         # info.append(f"> *Channel Bot API ID*: `{post.forwarded_channel.id}`")
-        info.append(f"> *Channel name*: {post.forwarded_channel.name}")
+        info.append(f"> *Channel name*: {esc(post.forwarded_channel.name)}")
         info.append(f"> *Channel link*: {forwarded_channel_link}")
         info.append(f"> *Channel owner*: `{post.forwarded_channel.admin_id}`")
 

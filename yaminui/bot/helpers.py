@@ -469,9 +469,8 @@ async def check_post(update: Update, args: list[str]):
                 update,
                 "No post found\\! Please send the link to the first picture\\.",
             )
-            yield
-        else:
-            yield post
+            continue
+        yield post
     return
 
 
