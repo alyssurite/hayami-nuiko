@@ -464,6 +464,7 @@ async def query_delete(
         (
             f"~{text_parts[0]}~",
             f"||{text_parts[1]}||",
+            *text_parts[2:-1],
             delete_result[result],
         )
     )

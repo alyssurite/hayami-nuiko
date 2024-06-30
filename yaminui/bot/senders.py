@@ -30,7 +30,7 @@ from telegram.ext import ContextTypes
 from tenacity import AsyncRetrying, RetryCallState, before_sleep_log, stop_after_attempt
 
 # pixiv & twitter styles, link types
-from ..api import LinkType, PixivStyle, TwitterStyle
+from ..api import LINKS, LinkType, PixivStyle, TwitterStyle
 
 # link namedtuple
 from ..api.namedtuples import Link
@@ -40,6 +40,8 @@ from ..bot.utils import get_post_link
 
 # database getters
 from ..db.getters import get_other_links
+
+# database models
 from ..db.models import Post
 
 # downloading media
@@ -266,6 +268,11 @@ async def send_warn_delete(update: Update, post: Post, **kwargs) -> Message:
     """
     ...
     hard_link = f"t.me/c/{-(post.channel_id + 10**12)}/{post.post_id}"
+    art_link = ""
+    if post.artwork.type == LinkType.TWITTER:
+        art_link = LINKS["twitter"]["link_id"].format(id=post.artwork.aid)
+    elif post.artwork.type == LinkType.PIXIV:
+        art_link = LINKS["pixiv"]["link"].format(id=post.artwork.aid)
     if post.channel.link:
         view_link = f"t.me/{post.channel.link}/{post.post_id}"
     else:
@@ -273,7 +280,7 @@ async def send_warn_delete(update: Update, post: Post, **kwargs) -> Message:
     return await send_reply(
         update,
         f"Are you sure you want to delete [*this post*]({view_link})\\? "
-        f"[🔗]({hard_link})\n\n"
+        f"[🔗]({hard_link}) \\| [🖼]({art_link})\n\n"
         "*Note*: This action will delete this post from database and your channel\\. "
         "If there're several pictures/videos, all of them will be deleted too\\!\n\n"
         "`\\[` ⚠️ *DELETE POST\\?* ⚠️ `\\]`",

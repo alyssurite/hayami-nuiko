@@ -535,7 +535,7 @@ async def delete_post_from_everywhere(post_record_id: int, user_id: int):
         if affected == len(delete_messages):
             log.info("Affected check succeeded: %d.", affected)
         else:
-            log.info("Affected check failed: %d != %d.", affected, len(delete_messages))
+            log.error("Affected check failed: %d != %d.", affected, len(delete_messages))
     except MessageDeleteForbidden:
         log.error("The bot can't delete this post!")
         return 2

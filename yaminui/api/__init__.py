@@ -233,6 +233,7 @@ LINKS = {
             (?P<format>\w+)
         """,
         "link": "https://twitter.com/{author}/status/{id}",
+        "link_id": "https://twitter.com/i/web/status/{id}",
         "t.co": r"https:\/\/t\.co\/\w{10}$",
         "image": "https://pbs.twimg.com/media/{id}?format={format}&name={size}",
         "type": LinkType.TWITTER,
