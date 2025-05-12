@@ -1,4 +1,5 @@
 """Filter functions module"""
+
 import os
 
 # telegram core bot api

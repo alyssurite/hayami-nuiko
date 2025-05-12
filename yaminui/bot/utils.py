@@ -1,4 +1,5 @@
 """Utils module"""
+
 import logging
 import re
 

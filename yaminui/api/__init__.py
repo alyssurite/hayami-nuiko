@@ -1,4 +1,5 @@
 """API module"""
+
 from abc import ABC, abstractmethod
 
 

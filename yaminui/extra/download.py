@@ -1,4 +1,5 @@
 """Download module"""
+
 import logging
 import re
 import tempfile

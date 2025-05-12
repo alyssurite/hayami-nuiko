@@ -1,4 +1,5 @@
 """Answer query functions module"""
+
 import logging
 
 # working with timezone
@@ -102,9 +103,11 @@ async def get_source_channel(message: Message) -> Optional[int]:
             log.info(
                 "Query Repost: Source: Info: <%d> %r.",
                 message.chat.id,
-                message.chat.title
-                if message.chat.id < 0
-                else message.chat.first_name + message.chat.last_name,
+                (
+                    message.chat.title
+                    if message.chat.id < 0
+                    else message.chat.first_name + message.chat.last_name
+                ),
             )
     return None
 

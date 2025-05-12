@@ -1,4 +1,5 @@
 """Upload module"""
+
 import logging
 import os
 

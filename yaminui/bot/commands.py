@@ -1,4 +1,5 @@
 """Commands module"""
+
 import logging
 import os
 

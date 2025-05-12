@@ -1,4 +1,5 @@
 """Senders module"""
+
 import logging
 
 from copy import deepcopy

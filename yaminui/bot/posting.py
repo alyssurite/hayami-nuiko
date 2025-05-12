@@ -1,4 +1,5 @@
-""""Posting functions module"""
+""" "Posting functions module"""
+
 import logging
 import os
 

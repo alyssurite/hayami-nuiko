@@ -1,4 +1,5 @@
 """Database deleters"""
+
 import logging
 
 from sqlalchemy import select

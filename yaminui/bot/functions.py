@@ -1,4 +1,5 @@
 """Functions module"""
+
 import asyncio
 import logging
 import re
