@@ -1,5 +1,7 @@
 """Twitter module"""
 
+import dataclasses
+import datetime
 import logging
 import os
 import re
@@ -12,27 +14,14 @@ import gallery_dl
 # parse json
 import orjson
 
+# json-serializable dataclasses
+from dataclasses_json import dataclass_json
+
 # parse datetime
 from dateutil.parser import parse
 
 # twitter api class
 from gallery_dl.extractor.twitter import TwitterAPI
-
-# sns exception
-from snscrape.base import ScraperException
-
-# notwitter
-from snscrape.modules.twitter import (
-    Gif,
-    Medium,
-    Photo,
-    TextLink,
-    Tweet,
-    TwitterTweetScraper,
-    User,
-    Video,
-    VideoVariant,
-)
 
 # escape markdown
 from ..bot import unescape_html
@@ -55,33 +44,111 @@ QUALITY = ("orig", "large", "medium", "small")
 # twitter dictionary
 TWI = LINKS["twitter"]
 
+# tweet URL
+TWEET_URL = "https://twitter.com/web/status"
+
+
+@dataclass_json
+@dataclasses.dataclass
+class TextLink:
+    text: Optional[str]
+    url: str
+    tcourl: Optional[str]
+    indices: tuple[int, int]
+
+
+class Medium:
+    pass
+
+
+@dataclass_json
+@dataclasses.dataclass
+class Photo(Medium):
+    previewUrl: str
+    fullUrl: str
+    kind: str = "Photo"
+    altText: str = ""
+
+
+@dataclass_json
+@dataclasses.dataclass
+class VideoVariant:
+    url: str
+    contentType: Optional[str]
+    bitrate: Optional[int]
+
+
+@dataclass_json
+@dataclasses.dataclass
+class Video(Medium):
+    thumbnailUrl: str
+    variants: list[VideoVariant]
+    kind: str = "Video"
+    duration: Optional[float] = None
+    views: Optional[int] = None
+    altText: str = ""
+
+
+@dataclass_json
+@dataclasses.dataclass
+class Gif(Medium):
+    thumbnailUrl: str
+    variants: list[VideoVariant]
+    kind: str = "Gif"
+    altText: str = ""
+
+
+@dataclass_json
+@dataclasses.dataclass
+class User:
+    username: str
+    id: int
+    displayname: Optional[str] = None
+
+    @property
+    def url(self):
+        return f"https://twitter.com/{self.username}"
+
+    def __str__(self):
+        return self.url
+
+
+@dataclass_json
+@dataclasses.dataclass
+class Tweet:
+    url: str
+    date: datetime.datetime
+    rawContent: str
+    renderedContent: str
+    id: int
+    user: User
+    replyCount: int
+    retweetCount: int
+    likeCount: int
+    quoteCount: int
+    conversationId: int
+    lang: str
+    links: Optional[list[TextLink]] = None
+    media: Optional[list[Photo | Video | Gif]] = None
+    quotedTweet: Optional["Tweet"] = None
+
+    def __str__(self):
+        return self.url
+
+    def to_dict(self):
+        data = dataclass_json.config().encoder(self)
+        data["_type"] = "tweet"
+        return data
+
+
 # set config
+gallery_dl.config.set(("extractor", "twitter"), "browser", "firefox:linux")
+gallery_dl.config.set(("extractor", "twitter"), "csrf", "cookies")
 gallery_dl.config.set(
     ("extractor", "twitter", "cookies"),
     "auth_token",
     os.environ["TW_TOKEN"],
 )
-gallery_dl.config.set(("extractor", "twitter"), "browser", "firefox:linux")
-
-
-async def get_from_public_api(tweet_id: int) -> Optional[Tweet]:
-    """Gets tweet info from public twitter api by tweet id
-
-    Args:
-        tweet_id (int): tweet id
-
-    Returns:
-        Optional[Tweet]: tweet dictionary
-    """
-    log.debug("Sending API request...")
-    try:
-        for tweet in TwitterTweetScraper(tweet_id).get_items():
-            log.debug("Response: %r.", tweet)
-            if not hasattr(tweet, "textLinks"):
-                return tweet
-        log.warning("No response from public API.")
-    except ScraperException:
-        log.warning("Scraping failed.")
 
 
 async def get_from_twimg_api(tweet_id: int) -> Optional[Tweet]:
@@ -540,7 +607,6 @@ async def get_twitter_links(tweet_id: int | str) -> Optional[ArtWorkMedia]:
         if not (
             tweet := (
                 await get_from_twimg_api(tweet_id)
-                # or await get_from_public_api(tweet_id)
                 # or await get_from_twitter_api(tweet_id)
                 or await get_from_secret_api(tweet_id)
             )
