@@ -1,4 +1,5 @@
 """Twitter module"""
+
 import logging
 import os
 import re
@@ -179,28 +180,33 @@ async def get_from_twimg_api(tweet_id: int) -> Optional[Tweet]:
             ]
             or None,
             quotedTweet=quote_info,
-            media=[
-                Photo(
-                    previewUrl=medium["media_url_https"],
-                    fullUrl=medium["media_url_https"],
-                )
-                if medium["type"] == "photo"
-                else Video(
-                    thumbnailUrl=medium["media_url_https"],
-                    variants=[
-                        VideoVariant(
-                            url=variant["url"],
-                            contentType=variant["content_type"],
-                            bitrate=variant.get("bitrate"),
+            media=(
+                [
+                    (
+                        Photo(
+                            previewUrl=medium["media_url_https"],
+                            fullUrl=medium["media_url_https"],
                         )
-                        for variant in medium["video_info"]["variants"]
-                    ],
-                    duration=(medium["video_info"].get("duration_millis") or 0) / 1000,
-                )
-                for medium in media_info
-            ]
-            if media_info
-            else None,
+                        if medium["type"] == "photo"
+                        else Video(
+                            thumbnailUrl=medium["media_url_https"],
+                            variants=[
+                                VideoVariant(
+                                    url=variant["url"],
+                                    contentType=variant["content_type"],
+                                    bitrate=variant.get("bitrate"),
+                                )
+                                for variant in medium["video_info"]["variants"]
+                            ],
+                            duration=(medium["video_info"].get("duration_millis") or 0)
+                            / 1000,
+                        )
+                    )
+                    for medium in media_info
+                ]
+                if media_info
+                else None
+            ),
         )
 
 
@@ -289,28 +295,33 @@ async def get_from_twitter_api(tweet_id: int) -> Optional[Tweet]:
             ]
             or None,
             quotedTweet=quote_info,
-            media=[
-                Photo(
-                    previewUrl=medium["media_url_https"],
-                    fullUrl=medium["media_url_https"],
-                )
-                if medium["type"] == "photo"
-                else Video(
-                    thumbnailUrl=medium["media_url_https"],
-                    variants=[
-                        VideoVariant(
-                            url=variant["url"],
-                            contentType=variant["content_type"],
-                            bitrate=variant.get("bitrate"),
+            media=(
+                [
+                    (
+                        Photo(
+                            previewUrl=medium["media_url_https"],
+                            fullUrl=medium["media_url_https"],
                         )
-                        for variant in medium["video_info"]["variants"]
-                    ],
-                    duration=(medium["video_info"].get("duration_millis") or 0) / 1000,
-                )
-                for medium in media_info
-            ]
-            if media_info
-            else None,
+                        if medium["type"] == "photo"
+                        else Video(
+                            thumbnailUrl=medium["media_url_https"],
+                            variants=[
+                                VideoVariant(
+                                    url=variant["url"],
+                                    contentType=variant["content_type"],
+                                    bitrate=variant.get("bitrate"),
+                                )
+                                for variant in medium["video_info"]["variants"]
+                            ],
+                            duration=(medium["video_info"].get("duration_millis") or 0)
+                            / 1000,
+                        )
+                    )
+                    for medium in media_info
+                ]
+                if media_info
+                else None
+            ),
         )
 
 
@@ -440,29 +451,23 @@ async def get_from_secret_api(tweet_id: int) -> Optional[Tweet]:
             log.warning("Couldn't decode json response: %r.", response.content)
             return
         log.debug("JSON: %r.", tweet_info)
-        del tweet_info["_type"]
         user_info, media_info, links_info, quote_info = (
             tweet_info.get("user"),
             tweet_info.get("media"),
             tweet_info.get("links"),
             tweet_info.get("quotedTweet"),
         )
-        # process user
-        del tweet_info["user"]
-        # process media
-        del tweet_info["media"]
         if not media_info:
             return
         media = []
         for medium in media_info:
-            kind = medium["_type"].split(".")[-1]
-            del medium["_type"]
+            if not (kind := medium.get("kind")):
+                continue
             if kind == "Photo":
                 media.append(Photo(**medium))
             else:
                 variants = []
                 for variant in medium["variants"]:
-                    del variant["_type"]
                     variants.append(VideoVariant(**variant))
                 medium["variants"] = variants
                 media.append(Video(**medium))
@@ -470,15 +475,11 @@ async def get_from_secret_api(tweet_id: int) -> Optional[Tweet]:
         links = []
         if links_info:
             for link in links_info:
-                del link["_type"]
                 links.append(TextLink(**link))
         # process quote
-        del tweet_info["quotedTweet"]
         quote = None
         if quote_info:
-            del quote_info["_type"]
             quoted_user = quote_info["user"]
-            del quote_info["user"]
             quote = Tweet(
                 url=quote_info["url"],
                 date=parse(quote_info["date"]),
