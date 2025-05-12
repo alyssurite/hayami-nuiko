@@ -181,7 +181,7 @@ async def send_post_info(update: Update, post: Post, **kwargs) -> Message:
             if post.artwork.type
             else "`\n> \t\t`".join(map(esc, post.artwork.files))
         )
-        info.append(f"> *Artwork files*: \[\n> \t\t`{files}`\n> \]")
+        info.append(f"> *Artwork files*: \\[\n> \t\t`{files}`\n> \\]")
 
     # forward channel
     if post.is_forwarded and post.forwarded_channel_id:

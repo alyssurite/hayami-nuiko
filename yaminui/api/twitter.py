@@ -568,7 +568,7 @@ async def get_from_secret_api(tweet_id: int) -> Optional[Tweet]:
         # return tweet
         return Tweet(
             url=tweet_info["url"],
-            date=parse(tweet_info["date"]),
+            date=datetime.datetime.fromtimestamp(tweet_info["date"]),
             rawContent=tweet_info["rawContent"],
             renderedContent=tweet_info["renderedContent"],
             id=tweet_info["id"],
