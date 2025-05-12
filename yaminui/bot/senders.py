@@ -121,7 +121,7 @@ async def send_reply(update: Update, text: str, **kwargs) -> Message:
 
 
 @retry_sending
-async def send_error(update: Update, text: str, quote=True, **kwargs) -> Message:
+async def send_error(update: Update, text: str, do_quote=True, **kwargs) -> Message:
     """Reply to current message with error
 
     Args:
@@ -132,7 +132,7 @@ async def send_error(update: Update, text: str, quote=True, **kwargs) -> Message
     Returns:
         Message: Telegram Message
     """
-    return await send_reply(update, "\\[`ERROR`\\] " + text, quote=True, **kwargs)
+    return await send_reply(update, "\\[`ERROR`\\] " + text, do_quote=True, **kwargs)
 
 
 @retry_sending
@@ -251,7 +251,7 @@ async def send_warn(update: Update, link: Link, **kwargs) -> Message:
                 ],
             ]
         ),
-        quote=True,
+        do_quote=True,
         **kwargs,
     )
 
@@ -305,7 +305,7 @@ async def send_warn_delete(update: Update, post: Post, **kwargs) -> Message:
                 ],
             ]
         ),
-        quote=True,
+        do_quote=True,
         **kwargs,
     )
 

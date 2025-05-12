@@ -112,7 +112,7 @@ async def get_first_link(update: Update, links: list[Link]) -> Link:
             "\\[`WARNING`\\] There's more than *one link* in this post\\! "
             "The bot will automatically use the first one it parses, that is, "
             f"[this one]({links[0].link})\\.",
-            quote=True,
+            do_quote=True,
         )
     return links[0]
 
@@ -130,7 +130,7 @@ async def get_posted(update: Update, data: UserData, link: Link) -> None:
         await send_reply(
             update,
             f"\\[`INFO`\\] Just so you know, you already posted this artwork {text}\\.",
-            quote=True,
+            do_quote=True,
         )
         log.warning("Forward: Content is not original within channel: %r.", link.link)
 
