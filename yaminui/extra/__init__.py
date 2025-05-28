@@ -20,11 +20,19 @@ UPLOAD_LINKS = {
 RETRY_MAX_TRIES, RETRY_MAX_TIMEOUT = 3, 5
 
 # request headers
+BASE_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) "
+    "Gecko/20100101 Firefox/128.0",
+    "Accept-Language": "en-US,en;q=0.5",
+}
+
 FAKE_HEADERS = {
-    "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:97.0) "
-    "Gecko/20100101 Firefox/97.0",
-    "accept": "*/*",
-    "accept-language": "en-US,en;q=0.5",
+    **BASE_HEADERS,
+    "Accept": "*/*",
+    "Connection": "keep-alive",
+    "Sec-Fetch-Dest": "empty",
+    "Sec-Fetch-Mode": "cors",
+    "Sec-Fetch-Site": "cross-site",
 }
 
 PIXIV_HEADERS = {

@@ -26,6 +26,9 @@ from gallery_dl.extractor.twitter import TwitterAPI
 # escape markdown
 from ..bot import unescape_html
 
+# fake headers
+from ..extra import FAKE_HEADERS
+
 # get file size, send requests
 from ..extra.helpers import get_file_size, make_request
 
@@ -149,30 +152,28 @@ gallery_dl.config.set(
     "auth_token",
     os.environ["TW_TOKEN"],
 )
+gallery_dl.config.set(
+    ("extractor", "twitter", "cookies"),
+    "ct0",
+    os.environ["TW_COOKIE"],
+)
 
 
 async def get_from_twimg_api(tweet_id: int) -> Optional[Tweet]:
     if response := await make_request(
-        "https://cdn.syndication.twimg.com/tweet-result",
-        "GET",
-        data="",
+        url="https://cdn.syndication.twimg.com/tweet-result",
+        method="GET",
         headers={
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) "
-            "Gecko/20100101 Firefox/114.0",
-            "Accept": "*/*",
-            "Accept-Language": "en-US,en;q=0.5",
+            **FAKE_HEADERS,
             "Accept-Encoding": "gzip, deflate, br",
             "Origin": "https://platform.twitter.com",
-            "Connection": "keep-alive",
             "Referer": "https://platform.twitter.com/",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "cross-site",
-            "Pragma": "no-cache",
-            "Cache-Control": "no-cache",
-            "TE": "trailers",
         },
-        params={"id": str(tweet_id), "lang": "en", "token": "ghostery"},
+        params={
+            "id": str(tweet_id),
+            "lang": "en",
+            "token": "ghostery",
+        },
     ):
         # check response
         if response.is_error:
@@ -500,11 +501,12 @@ async def get_from_secret_api(tweet_id: int) -> Optional[Tweet]:
         Optional[Tweet]: tweet dictionary
     """
     if response := await make_request(
-        os.environ["API_URL"],
+        url=os.environ["API_URL"],
         params={
             "api_key": os.environ["API_KEY"],
             "tweet_id": tweet_id,
         },
+        timeout=60,
     ):
         # check response
         if response.is_error:
@@ -607,7 +609,7 @@ async def get_twitter_links(tweet_id: int | str) -> Optional[ArtWorkMedia]:
         if not (
             tweet := (
                 await get_from_twimg_api(tweet_id)
-                # or await get_from_twitter_api(tweet_id)
+                or await get_from_twitter_api(tweet_id)
                 or await get_from_secret_api(tweet_id)
             )
         ):
