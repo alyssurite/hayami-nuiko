@@ -9,11 +9,13 @@ import uvicorn
 from telegram import Update
 
 # the api
-from yaminui.api import api_application
+from yaminui.app.api import api_application
 
 # the bot
+from yaminui.app.bot import bot_application
+
 # get bot modes and constants
-from yaminui.bot import BotMode, bot_application, on_bot_init, on_bot_stop
+from yaminui.bot import BotMode, on_bot_init, on_bot_stop
 
 # get logger
 log = logging.getLogger(__name__)
