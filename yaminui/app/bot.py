@@ -16,7 +16,14 @@ from telegram.ext import (
 )
 
 # bot states and everything else
-from yaminui.bot import READ_TIMEOUT, WRITE_TIMEOUT, BotState, on_bot_init, on_bot_stop
+from yaminui.bot import (
+    JOB_HEALTH_CHECKER,
+    READ_TIMEOUT,
+    WRITE_TIMEOUT,
+    BotState,
+    on_bot_init,
+    on_bot_stop,
+)
 
 # bot query
 from yaminui.bot.answer_query import answer_query
@@ -44,6 +51,9 @@ from yaminui.bot.functions import handle_post, universal
 
 # bot helpers
 from yaminui.bot.helpers import channel_check
+
+# bot jobs
+from yaminui.bot.jobs import health_checker
 
 # get logger
 log = logging.getLogger(__name__)
@@ -210,6 +220,14 @@ def create_bot_app() -> None:
             block=False,
         )
     )
+
+    # get job queue and ping other bots
+    if not (jobs := application.job_queue):
+        raise RuntimeError("Job queue was not initialized.")
+    # keep alive services with health check requests
+    jobs.run_repeating(health_checker, **JOB_HEALTH_CHECKER)
+    # mute messages about job being done
+    logging.getLogger("apscheduler.executors.default").setLevel("WARNING")
 
     return application
 

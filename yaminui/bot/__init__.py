@@ -30,6 +30,16 @@ READ_MEDIA_TIMEOUT, WRITE_MEDIA_TIMEOUT = 25, 50
 # limited queue size
 QUEUE_SIZE = 3
 
+# allowed misfire time for a job
+JOB_KWARGS = {"misfire_grace_time": 30}
+
+# health checker
+JOB_HEALTH_CHECKER = {
+    "first": 5,
+    "interval": 5 * 60,  # every 5 minutes
+    "job_kwargs": JOB_KWARGS,
+}
+
 # delay in seconds for collecting all media group messages
 DELAY_START = 0.1
 
