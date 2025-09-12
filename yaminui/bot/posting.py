@@ -13,40 +13,46 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 # pixiv & twitter styles, link types
-from ..api import LinkType, PixivStyle, TwitterStyle
+from yaminui.api import LinkType, PixivStyle, TwitterStyle
 
 # namedtuples
-from ..api.namedtuples import Link
-
-# database session
-from ..db import Session
-
-# database getters
-from ..db.getters import get_artwork
-
-# database models
-from ..db.models import ArtWork, Post
-
-# uploading media
-from ..extra.upload import upload_media
+from yaminui.api.namedtuples import Link
 
 # user data dataclass, posting results
-from . import PostingResult, UserData
+from yaminui.bot import PostingResult, UserData
 
 # bot auto-(re)posting
-from .answer_query import answer_query_post, answer_query_repost
+from yaminui.bot.answer_query import answer_query_post, answer_query_repost
 
 # bot helpers
-from .helpers import normalize_order, pixiv_post, pixiv_save
+from yaminui.bot.helpers import normalize_order, pixiv_post, pixiv_save
 
 # bot loggers
-from .loggers import notify
+from yaminui.bot.loggers import notify
 
 # bot senders
-from .senders import send_error, send_media, send_media_doc, send_reply_post, send_warn
+from yaminui.bot.senders import (
+    send_error,
+    send_media,
+    send_media_doc,
+    send_reply_post,
+    send_warn,
+)
 
 # bot utils
-from .utils import extract_media_ids, get_links
+from yaminui.bot.utils import extract_media_ids, get_links
+
+# database session
+from yaminui.db import Session
+
+# database getters
+from yaminui.db.getters import get_artwork
+
+# database models
+from yaminui.db.models import ArtWork, Post
+
+# uploading media
+from yaminui.extra.upload import upload_media
 
 # get logger
 log = logging.getLogger(__name__)

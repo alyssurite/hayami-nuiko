@@ -25,43 +25,51 @@ from telegram.constants import ParseMode as PM
 from telegram.ext import ContextTypes
 
 # pixiv & twitter styles, link types
-from ..api import LinkType, PixivStyle, TwitterStyle
+from yaminui.api import LinkType, PixivStyle, TwitterStyle
 
 # namedtuples
-from ..api.namedtuples import Link
-
-# bot posting
-from ..bot.helpers import normalize_order, pixiv_post
-
-# bot utils
-from ..bot.utils import cid_to_channel_id
-
-# database session
-from ..db import Session
-
-# database getters
-from ..db.getters import get_artwork, get_other_links, get_user_data
-
-# database models
-from ..db.models import Channel, Post
-
-# uploading media
-from ..extra.upload import upload_media
+from yaminui.api.namedtuples import Link
 
 # user data dataclass and everything else
-from . import PostingResult, UserData, delete_result, duplicate_result, esc, pyro_app
+from yaminui.bot import (
+    PostingResult,
+    UserData,
+    delete_result,
+    duplicate_result,
+    esc,
+    pyro_app,
+)
 
 # bot helpers
-from .helpers import delete_post_from_everywhere, pixiv_save
+# bot posting
+from yaminui.bot.helpers import (
+    delete_post_from_everywhere,
+    normalize_order,
+    pixiv_post,
+    pixiv_save,
+)
 
 # bot loggers
-from .loggers import notify
+from yaminui.bot.loggers import notify
 
 # bot senders
-from .senders import send_error, send_media, send_media_doc, send_reply_post
+from yaminui.bot.senders import send_error, send_media, send_media_doc, send_reply_post
 
 # bot utils
-from .utils import formatter, get_links
+# bot utils
+from yaminui.bot.utils import cid_to_channel_id, formatter, get_links
+
+# database session
+from yaminui.db import Session
+
+# database getters
+from yaminui.db.getters import get_artwork, get_other_links, get_user_data
+
+# database models
+from yaminui.db.models import Channel, Post
+
+# uploading media
+from yaminui.extra.upload import upload_media
 
 # get logger
 log = logging.getLogger(__name__)

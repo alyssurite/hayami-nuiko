@@ -17,16 +17,16 @@ from sqlalchemy.orm import joinedload
 from telegram import Update
 
 # user data dataclass
-from ..bot import UserData
+from yaminui.bot import UserData
 
 # bot utils
-from ..bot.utils import tg_post_link
+from yaminui.bot.utils import tg_post_link
 
 # database session
-from . import Session
+from yaminui.db import Session
 
 # database models
-from .models import ArtWork, Channel, Post, User
+from yaminui.db.models import ArtWork, Channel, Post, User
 
 # get logger
 log = logging.getLogger(__name__)

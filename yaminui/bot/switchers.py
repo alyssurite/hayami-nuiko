@@ -8,16 +8,16 @@ from typing import Optional
 from telegram import Update
 
 # pixiv & twiter styles
-from ..api import BaseStyle
-
-# bot senders
-from ..bot.senders import send_error, send_reply
-
-# database updaters
-from ..db.updaters import cycle_style, switch_style, toggle_field
+from yaminui.api import BaseStyle
 
 # log function calls
-from .loggers import notify
+from yaminui.bot.loggers import notify
+
+# bot senders
+from yaminui.bot.senders import send_error, send_reply
+
+# database updaters
+from yaminui.db.updaters import cycle_style, switch_style, toggle_field
 
 # get logger
 log = logging.getLogger(__name__)

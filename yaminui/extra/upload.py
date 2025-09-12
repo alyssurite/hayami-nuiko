@@ -10,16 +10,16 @@ from pathlib import Path
 import orjson
 
 # upload dictionary, constants
-from ..extra import UPLOAD_LINKS
+from yaminui.extra import UPLOAD_LINKS
 
 # downloading media
-from ..extra.download import download_media
+from yaminui.extra.download import download_media
 
 # send requests
-from ..extra.helpers import make_request, retry_request
+from yaminui.extra.helpers import make_request, retry_request
 
 # logger file handler
-from ..extra.loggers import FILE_HANDLER
+from yaminui.extra.loggers import FILE_HANDLER
 
 # get logger
 log = logging.getLogger(__name__)

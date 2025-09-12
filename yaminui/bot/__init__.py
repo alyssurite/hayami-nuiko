@@ -16,7 +16,7 @@ from telegram.ext import Application
 from telegram.helpers import escape_markdown
 
 # uploading media
-from ..extra.upload import upload_log
+from yaminui.extra.upload import upload_log
 
 # escaping markdown v2
 esc = partial(escape_markdown, version=2)

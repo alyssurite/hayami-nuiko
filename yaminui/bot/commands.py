@@ -12,28 +12,28 @@ from telegram import Update
 from telegram.ext import ContextTypes, ConversationHandler
 
 # pixiv & twiter styles
-from ..api import PixivStyle, TwitterStyle
-
-# database getters
-from ..db.getters import get_user_channel
-
-# database updaters
-from ..db.updaters import update_chat
+from yaminui.api import PixivStyle, TwitterStyle
 
 # bot states
-from . import BotState
+from yaminui.bot import BotState
 
 # helpers
-from .helpers import check_post
+from yaminui.bot.helpers import check_post
 
 # bot loggers
-from .loggers import notify
+from yaminui.bot.loggers import notify
 
 # bot senders
-from .senders import send_error, send_post_info, send_reply, send_warn_delete
+from yaminui.bot.senders import send_error, send_post_info, send_reply, send_warn_delete
 
 # bot switchers
-from .switchers import change_style, toggler
+from yaminui.bot.switchers import change_style, toggler
+
+# database getters
+from yaminui.db.getters import get_user_channel
+
+# database updaters
+from yaminui.db.updaters import update_chat
 
 # get logger
 log = logging.getLogger(__name__)

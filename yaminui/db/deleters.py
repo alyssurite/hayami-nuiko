@@ -5,10 +5,10 @@ import logging
 from sqlalchemy import select
 
 # database session
-from . import Session
+from yaminui.db import Session
 
 # database models
-from .models import Post
+from yaminui.db.models import Post
 
 # get logger
 log = logging.getLogger(__name__)

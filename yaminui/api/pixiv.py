@@ -11,17 +11,17 @@ import orjson
 # pixiv api
 from pixivpy_async import AppPixivAPI, PixivClient
 
-# fake headers
-from ..extra import FAKE_HEADERS
-
-# send requests
-from ..extra.helpers import make_request, retry_request
-
 # link types, link dictionary
-from . import LINKS, LinkType
+from yaminui.api import LINKS, LinkType
 
 # ArtWorkMedia
-from .namedtuples import ArtWorkMedia
+from yaminui.api.namedtuples import ArtWorkMedia
+
+# fake headers
+from yaminui.extra import FAKE_HEADERS
+
+# send requests
+from yaminui.extra.helpers import make_request, retry_request
 
 # pixiv tokens
 pixiv_api = {

@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from telegram import Update
 
 # the bot
-from .bot import bot_application
+from yaminui.bot import bot_application
 
 # get logger
 log = logging.getLogger(__name__)

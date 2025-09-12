@@ -16,13 +16,13 @@ from telegram.ext import (
 )
 
 # bot states and everything else
-from ..bot import READ_TIMEOUT, WRITE_TIMEOUT, BotState, on_bot_init, on_bot_stop
+from yaminui.bot import READ_TIMEOUT, WRITE_TIMEOUT, BotState, on_bot_init, on_bot_stop
 
 # bot query
-from ..bot.answer_query import answer_query
+from yaminui.bot.answer_query import answer_query
 
 # bot commands
-from ..bot.commands import (
+from yaminui.bot.commands import (
     command_cancel,
     command_channel,
     command_delete,
@@ -37,13 +37,13 @@ from ..bot.commands import (
 )
 
 # bot filters
-from ..bot.filters import filter_out
+from yaminui.bot.filters import filter_out
 
 # bot functions
-from ..bot.functions import handle_post, universal
+from yaminui.bot.functions import handle_post, universal
 
 # bot helpers
-from ..bot.helpers import channel_check
+from yaminui.bot.helpers import channel_check
 
 # get logger
 log = logging.getLogger(__name__)

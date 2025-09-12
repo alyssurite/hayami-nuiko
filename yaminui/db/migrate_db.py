@@ -16,16 +16,16 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session, aliased
 
 # namedtuples
-from ..api.namedtuples import Link
+from yaminui.api.namedtuples import Link
 
 # formatter
-from ..bot.helpers import formatter
+from yaminui.bot.helpers import formatter
 
 # database engine
-from ..db import ENGINE
+from yaminui.db import ENGINE
 
 # database models
-from ..db.models import ArtWork, Channel, Post, User
+from yaminui.db.models import ArtWork, Channel, Post, User
 
 # get logger
 log = logging.getLogger(__name__)

@@ -7,19 +7,19 @@ import re
 from telegram import Update
 
 # link types & link dictionary
-from ..api import LINKS, LinkType
+from yaminui.api import LINKS, LinkType
 
 # namedtuples
-from ..api.namedtuples import ArtWorkMedia, Link
+from yaminui.api.namedtuples import ArtWorkMedia, Link
 
 # pixiv api
-from ..api.pixiv import get_pixiv_links
+from yaminui.api.pixiv import get_pixiv_links
 
 # twitter api
-from ..api.twitter import get_twitter_links
+from yaminui.api.twitter import get_twitter_links
 
 # bot constants
-from ..bot import tg_post_link, tw_regex
+from yaminui.bot import tg_post_link, tw_regex
 
 # get logger
 log = logging.getLogger(__name__)

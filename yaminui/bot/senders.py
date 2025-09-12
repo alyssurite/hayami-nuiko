@@ -31,25 +31,25 @@ from telegram.ext import ContextTypes
 from tenacity import AsyncRetrying, RetryCallState, before_sleep_log, stop_after_attempt
 
 # pixiv & twitter styles, link types
-from ..api import LINKS, LinkType, PixivStyle, TwitterStyle
+from yaminui.api import LINKS, LinkType, PixivStyle, TwitterStyle
 
 # link namedtuple
-from ..api.namedtuples import Link
-
-# bot utils
-from ..bot.utils import get_post_link
-
-# database getters
-from ..db.getters import get_other_links
-
-# database models
-from ..db.models import Post
-
-# downloading media
-from ..extra.download import download_media
+from yaminui.api.namedtuples import Link
 
 # escape markdown, constants
-from . import READ_MEDIA_TIMEOUT, WRITE_MEDIA_TIMEOUT, esc
+from yaminui.bot import READ_MEDIA_TIMEOUT, WRITE_MEDIA_TIMEOUT, esc
+
+# bot utils
+from yaminui.bot.utils import get_post_link
+
+# database getters
+from yaminui.db.getters import get_other_links
+
+# database models
+from yaminui.db.models import Post
+
+# downloading media
+from yaminui.extra.download import download_media
 
 # get logger
 log = logging.getLogger(__name__)

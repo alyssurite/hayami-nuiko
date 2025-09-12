@@ -9,7 +9,7 @@ from telegram import Chat, Update
 from telegram.ext import ApplicationHandlerStop, ContextTypes
 
 # database getters
-from ..db.getters import check_channel, check_user
+from yaminui.db.getters import check_channel, check_user
 
 
 async def filter_out(update: Update, context: ContextTypes.DEFAULT_TYPE):

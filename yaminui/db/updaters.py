@@ -6,13 +6,13 @@ import logging
 from telegram import Chat
 
 # pixiv & twiter styles
-from ..api import BaseStyle
+from yaminui.api import BaseStyle
 
 # database session
-from . import Session
+from yaminui.db import Session
 
 # database models
-from .models import Channel, User
+from yaminui.db.models import Channel, User
 
 # get logger
 log = logging.getLogger(__name__)

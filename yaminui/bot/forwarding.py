@@ -13,34 +13,29 @@ from telegram import MessageOrigin, Update
 from telegram.ext import ContextTypes
 
 # link types
-from ..api import LinkType
+from yaminui.api import LinkType
 
 # namedtuples
-from ..api.namedtuples import Link
-
-# database session
-from ..db import Session
-
-# database getters
-from ..db.getters import get_artwork, get_other_links
-
-# database models
-from ..db.models import ArtWork, Channel, Post
-
-# uploading media
-from ..extra.upload import upload_media
+from yaminui.api.namedtuples import Link
 
 # bot constants, user data dataclass, etc.
-from . import DELAY_START, JOB_SLEEP, MISFIRE_GRACE_TIME, UserData, esc, pyro_app
+from yaminui.bot import (
+    DELAY_START,
+    JOB_SLEEP,
+    MISFIRE_GRACE_TIME,
+    UserData,
+    esc,
+    pyro_app,
+)
 
 # bot helpers
-from .helpers import normalize_order, pixiv_save
+from yaminui.bot.helpers import normalize_order, pixiv_save
 
 # bot loggers
-from .loggers import notify
+from yaminui.bot.loggers import notify
 
 # bot senders
-from .senders import (
+from yaminui.bot.senders import (
     forward,
     send_error,
     send_media,
@@ -50,7 +45,19 @@ from .senders import (
 )
 
 # bot utils
-from .utils import check_message_media, extract_media_ids, get_links
+from yaminui.bot.utils import check_message_media, extract_media_ids, get_links
+
+# database session
+from yaminui.db import Session
+
+# database getters
+from yaminui.db.getters import get_artwork, get_other_links
+
+# database models
+from yaminui.db.models import ArtWork, Channel, Post
+
+# uploading media
+from yaminui.extra.upload import upload_media
 
 # get logger
 log = logging.getLogger(__name__)

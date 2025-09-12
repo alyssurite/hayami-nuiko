@@ -23,20 +23,20 @@ from dateutil.parser import parse
 # twitter api class
 from gallery_dl.extractor.twitter import TwitterAPI
 
-# escape markdown
-from ..bot import unescape_html
-
-# fake headers
-from ..extra import FAKE_HEADERS
-
-# get file size, send requests
-from ..extra.helpers import get_file_size, make_request
-
 # link dictionary
-from . import LINKS
+from yaminui.api import LINKS
 
 # import ArtWorkMedia
-from .namedtuples import ArtWorkMedia, TweetContent
+from yaminui.api.namedtuples import ArtWorkMedia, TweetContent
+
+# escape markdown
+from yaminui.bot import unescape_html
+
+# fake headers
+from yaminui.extra import FAKE_HEADERS
+
+# get file size, send requests
+from yaminui.extra.helpers import get_file_size, make_request
 
 # get logger
 log = logging.getLogger(__name__)

@@ -13,13 +13,13 @@ import magic
 from PIL import Image
 
 # link types
-from ..api import LinkType
+from yaminui.api import LinkType
 
 # fake headers
-from ..extra import FAKE_HEADERS, PIXIV_HEADERS, UPLOAD_LINKS
+from yaminui.extra import FAKE_HEADERS, PIXIV_HEADERS, UPLOAD_LINKS
 
 # make request
-from ..extra.helpers import file_request, make_request
+from yaminui.extra.helpers import file_request, make_request
 
 # get logger
 log = logging.getLogger(__name__)

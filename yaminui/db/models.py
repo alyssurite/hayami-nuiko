@@ -16,10 +16,10 @@ from sqlalchemy import (
 from sqlalchemy.orm import Mapped, column_property, mapped_column, relationship, validates
 
 # import pixiv & twitter styles and link types
-from ..api import LinkType, PixivStyle, TwitterStyle
+from yaminui.api import LinkType, PixivStyle, TwitterStyle
 
 # get declarative base class
-from . import Base
+from yaminui.db import Base
 
 bool0 = Annotated[bool, mapped_column(default=False)]
 bool1 = Annotated[bool, mapped_column(default=True)]

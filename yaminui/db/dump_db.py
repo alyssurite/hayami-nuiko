@@ -9,10 +9,10 @@ import orjson
 from sqlalchemy.orm import Session
 
 # database engine
-from ..db import ENGINE
+from yaminui.db import ENGINE
 
 # database models
-from ..db.models import ArtWork, Channel, Post, User
+from yaminui.db.models import ArtWork, Channel, Post, User
 
 # get logger
 log = logging.getLogger(__name__)

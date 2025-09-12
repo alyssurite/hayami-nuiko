@@ -11,7 +11,7 @@ import httpx
 from tenacity import AsyncRetrying, before_sleep_log, stop_after_attempt, wait_fixed
 
 # fake headers
-from ..extra import FAKE_HEADERS, RETRY_MAX_TIMEOUT, RETRY_MAX_TRIES
+from yaminui.extra import FAKE_HEADERS, RETRY_MAX_TIMEOUT, RETRY_MAX_TRIES
 
 # get logger
 log = logging.getLogger(__name__)

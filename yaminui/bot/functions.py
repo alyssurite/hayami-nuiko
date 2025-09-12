@@ -11,37 +11,37 @@ from telegram import MessageOrigin, Update
 from telegram.ext import ContextTypes
 
 # pixiv styles, link types
-from ..api import LinkType
+from yaminui.api import LinkType
 
 # get queue size
-from ..bot import QUEUE_SIZE
-
-# database session
-from ..db import Session
-
-# database getters
-from ..db.getters import get_artwork, get_user_data
-
-# database models
-from ..db.models import ArtWork, Channel, Post
-
-# database updaters
-from ..db.updaters import update_chat
+from yaminui.bot import QUEUE_SIZE
 
 # bot forwarding
-from .forwarding import just_forwarding, just_forwarding_group, no_forwarding
+from yaminui.bot.forwarding import just_forwarding, just_forwarding_group, no_forwarding
 
 # bot loggers
-from .loggers import notify
+from yaminui.bot.loggers import notify
 
 # bot posting
-from .posting import just_posting, pixiv_post
+from yaminui.bot.posting import just_posting, pixiv_post
 
 # bot senders
-from .senders import send_error
+from yaminui.bot.senders import send_error
 
 # bot utils
-from .utils import extract_media_ids, formatter, get_links, get_text
+from yaminui.bot.utils import extract_media_ids, formatter, get_links, get_text
+
+# database session
+from yaminui.db import Session
+
+# database getters
+from yaminui.db.getters import get_artwork, get_user_data
+
+# database models
+from yaminui.db.models import ArtWork, Channel, Post
+
+# database updaters
+from yaminui.db.updaters import update_chat
 
 # get logger
 log = logging.getLogger(__name__)
