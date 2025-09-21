@@ -384,7 +384,11 @@ async def answer_query_repost(
 async def answer_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     notify(update, command="answer_query")
     # answer callback query
-    await update.callback_query.answer()
+    try:
+        await update.callback_query.answer()
+    except BadRequest:
+        log.error("Query: query is too old.")
+        return
     # get user data
     if not (data := await get_user_data(update)):
         await send_error(
