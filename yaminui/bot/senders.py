@@ -22,7 +22,7 @@ from telegram import (
 from telegram.constants import ParseMode as PM
 
 # telegram errors
-from telegram.error import RetryAfter, TimedOut
+from telegram.error import BadRequest, RetryAfter, TimedOut
 
 # telegram core bot api extension
 from telegram.ext import ContextTypes
@@ -103,7 +103,11 @@ async def forward(update: Update, channel: int) -> Message:
     Returns:
         Message: Telegram Message
     """
-    return await update.effective_message.forward(channel)
+    try:
+        return await update.effective_message.forward(channel)
+    except BadRequest:
+        log.error("Forward: message was deleted.")
+        return
 
 
 @retry_sending

@@ -8,7 +8,7 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
-python-telegram-bot = {version = "^22.3", extras = ["job-queue", "webhooks"]}
+python-telegram-bot = {version = "^22.4", extras = ["job-queue", "webhooks"]}
 pyrogram = "^2.0.106"
 tgcrypto = "^1.2.5"
 uvloop = {version = "^0.21.0", platform = "linux"}
@@ -26,10 +26,10 @@ pixivpy-async = "^1.2.14"
 aiocache = "^0.12.3"
 orjson = "^3.11.3"
 python-dateutil = "^2.9.0.post0"
-gallery-dl = "^1.30.6"
+gallery-dl = "^1.30.7"
 psycopg2-binary = "^2.9.10"
-fastapi = "^0.116.1"
-uvicorn = "^0.35.0"
+fastapi = "^0.117.1"
+uvicorn = "^0.36.0"
 dataclasses-json = "^0.6.7"
 
 [tool.poetry.group.dev.dependencies]
