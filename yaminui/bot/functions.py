@@ -57,7 +57,7 @@ pixiv_regex = re.compile(r"^((?:\d+)(?:-\d+)?[.,\s]*){1,10}(?P<above>\!)?$")
 queue = asyncio.Queue(QUEUE_SIZE)
 
 
-@clear_context
+@clear_context()
 async def universal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Universal function for handling posting
 
@@ -128,7 +128,7 @@ async def universal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await queue.get()
 
 
-@clear_context
+@clear_context()
 async def handle_post(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """Handles posts in channel"""
     notify(update, command="handle_post")
