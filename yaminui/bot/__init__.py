@@ -30,7 +30,7 @@ READ_TIMEOUT, WRITE_TIMEOUT = 5, 5
 READ_MEDIA_TIMEOUT, WRITE_MEDIA_TIMEOUT = 25, 50
 
 # limited queue size
-QUEUE_SIZE = 3
+QUEUE_SIZE = 5
 
 # allowed misfire time for a job
 JOB_KWARGS = {"misfire_grace_time": 30}
