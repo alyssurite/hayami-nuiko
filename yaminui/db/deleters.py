@@ -1,6 +1,6 @@
 """Database deleters"""
 
-import logging
+import structlog
 
 from sqlalchemy import select
 
@@ -11,7 +11,7 @@ from yaminui.db import Session
 from yaminui.db.models import Post
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 async def delete_post_by_id(record_id: int):

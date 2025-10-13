@@ -1,11 +1,10 @@
 """Pixiv module"""
 
-import logging
-
 from typing import Optional
 
 # parse json
 import orjson
+import structlog
 
 # pixiv api
 from pixivpy_async import AppPixivAPI, PixivClient
@@ -32,7 +31,7 @@ pixiv_api = {
 }
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 async def get_pixiv_media(illust: dict) -> ArtWorkMedia:

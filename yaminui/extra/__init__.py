@@ -1,15 +1,7 @@
 """Extra module"""
 
-import os
-
-# working with env
-from dotenv import load_dotenv
-
 # env variables
 from yaminui.extra.settings import bot_settings
-
-# load .env file
-load_dotenv()
 
 # upload dictionary
 UPLOAD_LINKS = {

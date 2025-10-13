@@ -1,9 +1,8 @@
 """Bot Jobs"""
 
-import logging
-
 # http requests
 import httpx
+import structlog
 
 # telegram core bot api extension
 from telegram.ext import ContextTypes
@@ -15,7 +14,7 @@ from yaminui.extra import FAKE_HEADERS
 from yaminui.extra.settings import bot_settings
 
 # setup logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 async def health_checker(
@@ -25,18 +24,19 @@ async def health_checker(
     if not (hcu := bot_settings.health_check_url):
         return
 
+    health_check_link = hcu.unicode_string()
     try:
         async with httpx.AsyncClient(timeout=5) as client:
-            if (response := await client.get(hcu, headers=FAKE_HEADERS)).is_error:
+            if (response := await client.get(health_check_link, headers=FAKE_HEADERS)).is_error:
                 log.warning(
                     "PingInstance: Failed to reach %s. Status: %s",
-                    hcu,
+                    health_check_link,
                     response.status_code,
                 )
             else:
                 log.debug(
                     "PingInstance: Successfully reached %s. Status: %s",
-                    hcu,
+                    health_check_link,
                     response.status_code,
                 )
     except Exception as ex:

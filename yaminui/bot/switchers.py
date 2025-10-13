@@ -1,8 +1,8 @@
 """Switchers module"""
 
-import logging
-
 from typing import Optional
+
+import structlog
 
 # telegram core bot api
 from telegram import Update
@@ -20,7 +20,7 @@ from yaminui.bot.senders import send_error, send_reply
 from yaminui.db.updaters import cycle_style, switch_style, toggle_field
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 # state tuple
 states = ("disabled", "enabled")

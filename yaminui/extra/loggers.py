@@ -1,99 +1,195 @@
 """Loggers module"""
 
-import logging
-import os
+import logging.config
 import sys
 
-# reading setings
-import tomllib
-
-from datetime import datetime
-from logging import FileHandler, Formatter, Logger
 from pathlib import Path
 from typing import Optional
 
-# logtail for logging
-from logtail import LogtailHandler
+# structured logging
+import structlog
 
-# env variables
-from yaminui.extra.settings import bot_settings
-
-# current timestamp & app directory
-DATE_RUN = datetime.now()
-FILE_DIR = Path(__file__).parent.parent.parent  # /extra -> /yoiyoi -> /app
-
-
-# get config
-CONFIG = tomllib.load(Path(bot_settings.log_settings_file).open("rb"))
-
-# set basic config to logger
-logging.basicConfig(
-    format=CONFIG["log"]["form"],
-    level=CONFIG["log"]["level"],
+# settings
+from yaminui.extra.settings import (
+    DATE_RUN,
+    UUID_RUN,
+    WORK_DIR,
+    bot_settings,
+    log_settings,
 )
 
-# get root logger
-root_log = logging.getLogger()
+
+def add_global_info(logger, method_name, event_dict):
+    event_dict["app"] = {
+        "uuid": UUID_RUN,
+        "date": DATE_RUN,
+    }
+    return event_dict
 
 
-def get_file_handler() -> Optional[FileHandler]:
+CONSOLE_HANDLER = "console"
+CONSOLE_FORMATTER = "console_formatter"
+
+JSONFORMAT_HANDLER = "jsonformat"
+JSONFORMAT_FORMATTER = "jsonformat_formatter"
+
+BASE_PREPROCESSORS = [
+    add_global_info,
+    structlog.stdlib.add_logger_name,
+    structlog.stdlib.add_log_level,
+    structlog.processors.TimeStamper(log_settings.file.date),
+    structlog.processors.UnicodeDecoder(),
+    structlog.processors.StackInfoRenderer(),
+    structlog.processors.format_exc_info,
+]
+
+EXTENDED_PREPROCESSORS = (
+    [
+        structlog.contextvars.merge_contextvars,
+        structlog.stdlib.filter_by_level,
+    ]
+    + BASE_PREPROCESSORS
+    + [
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
+    ]
+)
+
+HANDLERS = {
+    CONSOLE_HANDLER: {
+        "class": "logging.StreamHandler",
+        "formatter": CONSOLE_FORMATTER,
+        "level": log_settings.root.level,
+    },
+    JSONFORMAT_HANDLER: {
+        "class": "logging.StreamHandler",
+        "formatter": JSONFORMAT_FORMATTER,
+        "level": log_settings.root.level,
+    },
+}
+
+
+def get_log_filename() -> Path:
+    return (
+        log_settings.file.path
+        / f"{log_settings.file.pref}{DATE_RUN.strftime(log_settings.file.date)}.log"
+    )
+
+
+def get_fh(level: str) -> Optional[dict[str, str]]:
     """Create file handler"""
-    file_log = CONFIG["log"]["file"]
-    if file_log["enable"]:
-        root_log.info("Logging to file enabled.")
-        log_dir = FILE_DIR / file_log["path"]
+    if log_settings.file.enable:
+        print("Logging to file enabled.")
+        log_dir = WORK_DIR / log_settings.file.path
         if not log_dir.is_dir():
-            root_log.warning("Log directory doesn't exist.")
+            print("Log directory doesn't exist.")
             try:
-                root_log.info("Creating log directory...")
+                print("Creating log directory...")
                 log_dir.mkdir()
-                root_log.info("Created log directory: %r.", log_dir.resolve())
+                print(f"Created log directory: {log_dir.resolve()}.")
             except IOError as ex:
-                root_log.error("Exception occured: %s.", ex)
-                root_log.info("Can't execute program.")
-                sys.exit()
-        log_date = DATE_RUN.strftime(file_log["date"])
-        log_name = f"{file_log['pref']}{log_date}.log"
+                print(f"Exception occured: {ex}.")
+                print("Can't create handler.")
+                return
+        log_date = DATE_RUN.strftime(log_settings.file.date)
+        log_name = f"{log_settings.file.pref}{log_date}.log"
         log_file = log_dir / log_name
-        root_log.info("Logging to file: %r.", log_name)
-        # add file handler
-        file_handler = FileHandler(log_file, encoding="utf-8")
-        file_handler.setFormatter(Formatter(file_log["form"]))
-        file_handler.setLevel(file_log["level"])
-        return file_handler
-    root_log.info("Logging to file disabled.")
+        print(f"Logging to file: {log_name}.")
+        return {
+            "class": "logging.FileHandler",
+            "formatter": JSONFORMAT_FORMATTER,
+            "filename": log_file,
+            "level": level,
+        }
+    print("Logging to file disabled.")
     return
 
 
-FILE_HANDLER = get_file_handler()
-
-
-def get_logtail_handler() -> Optional[LogtailHandler]:
+def get_lh(level: str):
     """Create logtail handler"""
-    if token := os.environ.get("LOGTAIL_TOKEN", None):
-        return LogtailHandler(token)
+    if log_settings.tail.enable:
+        print("Logging to logtail enabled.")
+    else:
+        print("Logging to logtail disabled.")
+        return
+    if not bot_settings.logtail_token:
+        print("But logtail token wasn't provided.")
+        return
+    return {
+        "class": "logtail.LogtailHandler",
+        "source_token": bot_settings.logtail_token,
+        # "flush_interval": 10,
+        "host": "https://in.logs.betterstack.com",
+        "formatter": JSONFORMAT_FORMATTER,
+        "level": level,
+    }
 
 
-LOGTAIL_HANDLER = get_logtail_handler()
+if FILE_HANDLER := get_fh(log_settings.file.level):
+    HANDLERS["file_handler"] = FILE_HANDLER
+if LOGTAIL_HANDLER := get_lh(log_settings.tail.level):
+    HANDLERS["logtail_handler"] = LOGTAIL_HANDLER
 
 
-# add handlers to root logger
-def add_handlers(logger: Logger):
-    if FILE_HANDLER:
-        logger.addHandler(FILE_HANDLER)
-    if LOGTAIL_HANDLER:
-        logger.addHandler(LOGTAIL_HANDLER)
+# basic logging config
+logging.config.dictConfig(
+    {
+        "version": 1,
+        "disable_existing_loggers": False,
+        "formatters": {
+            JSONFORMAT_FORMATTER: {
+                "()": structlog.stdlib.ProcessorFormatter,
+                "processor": structlog.processors.JSONRenderer(),
+                "foreign_pre_chain": BASE_PREPROCESSORS,
+            },
+            CONSOLE_FORMATTER: {
+                "()": structlog.stdlib.ProcessorFormatter,
+                "processor": structlog.dev.ConsoleRenderer(colors=True),
+                "foreign_pre_chain": BASE_PREPROCESSORS,
+            },
+        },
+        "handlers": HANDLERS,
+        "loggers": {
+            "": {
+                "handlers": (
+                    [
+                        CONSOLE_HANDLER if sys.stderr.isatty() else JSONFORMAT_HANDLER,
+                        "file_handler",
+                        "logtail_handler",
+                    ]
+                    if FILE_HANDLER
+                    else [
+                        CONSOLE_HANDLER if sys.stderr.isatty() else JSONFORMAT_HANDLER,
+                        "logtail_handler",
+                    ]
+                ),
+                "level": log_settings.root.level,
+                "propagate": True,
+            }
+        },
+    },
+)
+
+# structlog configuration
+structlog.configure(
+    wrapper_class=structlog.make_filtering_bound_logger(log_settings.root.level),
+    context_class=dict,
+    processors=EXTENDED_PREPROCESSORS,
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    cache_logger_on_first_use=True,
+)
 
 
-add_handlers(root_log)
+# get root logger
+root_log = structlog.get_logger()
 
 
 # setup loggers
 def setup_loggers():
-    for module in CONFIG["log"]["lib"]:
-        logger = logging.getLogger(module["name"])
-        if module["enable"]:
-            logger.setLevel(module["level"])
+    for module in log_settings.lib:
+        logger = logging.getLogger(module.name)
+        if module.enable:
+            logger.setLevel(module.level)
         else:
             logger.propagate = False
 

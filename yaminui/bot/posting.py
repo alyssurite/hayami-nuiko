@@ -1,6 +1,6 @@
 """ "Posting functions module"""
 
-import logging
+import structlog
 
 # sqlalchemy exceptions
 from sqlalchemy.exc import IntegrityError
@@ -57,7 +57,7 @@ from yaminui.extra.settings import bot_settings
 from yaminui.extra.upload import upload_media
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 # banned from posting on their own
 ALERT_ID = int(bot_settings.alert_id)

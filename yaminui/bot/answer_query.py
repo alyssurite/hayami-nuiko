@@ -1,13 +1,13 @@
 """Answer query functions module"""
 
-import logging
-
 # working with timezone
 from datetime import timezone as tz
 from typing import Optional
 
 # working with URLs
 from urllib.parse import unquote
+
+import structlog
 
 # pyrogram exceptions
 from pyrogram.errors.exceptions import BadRequest, ChannelPrivate
@@ -72,7 +72,7 @@ from yaminui.db.models import Channel, Post
 from yaminui.extra.upload import upload_media
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 async def get_messages_to_repost(

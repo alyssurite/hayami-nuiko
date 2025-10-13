@@ -1,10 +1,11 @@
 """Helpers module"""
 
-import logging
 import re
 
 from typing import Optional
 from urllib.parse import parse_qs, urlparse
+
+import structlog
 
 # psql exceptions
 from psycopg2.errors import UniqueViolation
@@ -71,7 +72,7 @@ from yaminui.db.models import ArtWork, Channel, Post, User
 from yaminui.extra.upload import upload_media
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 async def check_if_owned(channel_id: int):

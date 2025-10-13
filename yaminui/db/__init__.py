@@ -1,5 +1,3 @@
-import os
-
 # working with env
 from dotenv import load_dotenv
 

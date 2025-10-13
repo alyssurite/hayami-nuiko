@@ -111,18 +111,17 @@ bot_settings = BotSettings()
 
 class FileLog(BaseModel):
     enable: bool = Field(False)
+    level: str = Field("DEBUG")
+    form: str = Field("%(asctime)s [%(levelname)s] > %(name)s: %(message)s")
     date: str = Field("%Y-%m-%d.%H-%M-%S")
     path: Path = Field(WORK_DIR / "log")
     pref: str = Field("")
 
 
 class BasicLog(BaseModel):
+    enable: bool = Field(False)
     level: str = Field("DEBUG")
     form: str = Field("%(asctime)s [%(levelname)s] > %(name)s: %(message)s")
-
-
-class OutLog(BasicLog):
-    file: Optional[BasicLog]
 
 
 class ExcludeLog(BasicLog):
@@ -131,25 +130,25 @@ class ExcludeLog(BasicLog):
     level: str = Field("WARNING")
 
 
-# class LogSettings(BaseSettings):
-#     file: FileLog
-#     root: OutLog
-#     bot: OutLog
-#     tail: OutLog
+class LogSettings(BaseSettings):
+    file: FileLog
+    root: BasicLog
+    bot: BasicLog
+    tail: BasicLog
 
-#     lib: list[ExcludeLog]
+    lib: list[ExcludeLog]
 
-#     model_config: SettingsConfigDict = SettingsConfigDict(
-#         toml_file=bot_settings.log_settings_file
-#     )
+    model_config: SettingsConfigDict = SettingsConfigDict(
+        toml_file=bot_settings.log_settings_file
+    )
 
-#     @classmethod
-#     def settings_customise_sources(
-#         cls,
-#         settings_cls: type[BaseSettings],
-#         **kwargs,
-#     ) -> tuple[PydanticBaseSettingsSource, ...]:
-#         return (TomlConfigSettingsSource(settings_cls),)
+    @classmethod
+    def settings_customise_sources(
+        cls,
+        settings_cls: type[BaseSettings],
+        **kwargs,
+    ) -> tuple[PydanticBaseSettingsSource, ...]:
+        return (TomlConfigSettingsSource(settings_cls),)
 
 
-# log_settings = LogSettings()
+log_settings = LogSettings()

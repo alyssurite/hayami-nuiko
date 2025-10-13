@@ -1,7 +1,8 @@
 """Utils module"""
 
-import logging
 import re
+
+import structlog
 
 # telegram core bot api
 from telegram import Update
@@ -22,7 +23,7 @@ from yaminui.api.twitter import get_twitter_links
 from yaminui.bot import tg_post_link, tw_regex
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 def cid_to_channel_id(cid: int) -> int:

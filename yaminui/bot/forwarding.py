@@ -1,10 +1,11 @@
 """Forwarding/No forwarding functions module"""
 
 import asyncio
-import logging
 
 # working with timezone
 from datetime import timezone as tz
+
+import structlog
 
 # telegram core bot api
 from telegram import MessageOrigin, Update
@@ -60,7 +61,7 @@ from yaminui.db.models import ArtWork, Channel, Post
 from yaminui.extra.upload import upload_media
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 async def get_message_date(chat_id: int, message_id: int):

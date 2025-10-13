@@ -1,8 +1,8 @@
 """Main Application"""
 
-import logging
 import os
 
+import structlog
 import uvicorn
 
 # telegram core bot api
@@ -21,7 +21,7 @@ from yaminui.bot import BotMode, on_bot_init, on_bot_stop
 from yaminui.extra.settings import bot_settings
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 async def start_app(mode: int = BotMode.WEBHOOK):

@@ -1,6 +1,5 @@
 """Filter functions module"""
 
-
 # telegram core bot api
 from telegram import Chat, Update
 

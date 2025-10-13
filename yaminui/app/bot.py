@@ -1,5 +1,7 @@
 import logging
 
+import structlog
+
 # telegram core bot api
 from telegram import Update
 
@@ -58,7 +60,7 @@ from yaminui.bot.jobs import health_checker
 from yaminui.extra.settings import bot_settings
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 def create_bot_app() -> None:

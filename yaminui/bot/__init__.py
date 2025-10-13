@@ -1,6 +1,5 @@
 """Bot module"""
 
-import os
 import re
 
 from dataclasses import dataclass

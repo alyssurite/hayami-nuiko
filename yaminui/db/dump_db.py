@@ -1,9 +1,8 @@
-import logging
-
 from pathlib import Path
 
 # parse json
 import orjson
+import structlog
 
 # working with database
 from sqlalchemy.orm import Session
@@ -15,7 +14,7 @@ from yaminui.db import ENGINE
 from yaminui.db.models import ArtWork, Channel, Post, User
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 def row2dict(row) -> dict:

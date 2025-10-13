@@ -1,6 +1,5 @@
 """Download module"""
 
-import logging
 import re
 import tempfile
 
@@ -8,6 +7,7 @@ from typing import AsyncGenerator
 
 # file extension check
 import magic
+import structlog
 
 # working with images
 from PIL import Image
@@ -22,7 +22,7 @@ from yaminui.extra import FAKE_HEADERS, PIXIV_HEADERS, UPLOAD_LINKS
 from yaminui.extra.helpers import file_request, make_request
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 # max image side length
 IM_MAX = (2560, 2560)

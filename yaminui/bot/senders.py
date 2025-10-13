@@ -6,6 +6,8 @@ from copy import deepcopy
 from html import escape as escape_html
 from typing import Callable, Optional
 
+import structlog
+
 # telegram core bot api
 from telegram import (
     InlineKeyboardButton,
@@ -52,7 +54,7 @@ from yaminui.db.models import Post
 from yaminui.extra.download import download_media
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 # constants
 MAX_TIMEOUT, MAX_TRIES = 15, 5

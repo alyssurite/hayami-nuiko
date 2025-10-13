@@ -6,6 +6,7 @@ from typing import Any
 
 # send requests
 import httpx
+import structlog
 
 # hardcore retrying
 from tenacity import AsyncRetrying, before_sleep_log, stop_after_attempt, wait_fixed
@@ -14,7 +15,7 @@ from tenacity import AsyncRetrying, before_sleep_log, stop_after_attempt, wait_f
 from yaminui.extra import FAKE_HEADERS, RETRY_MAX_TIMEOUT, RETRY_MAX_TRIES
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 def retry_request(func):

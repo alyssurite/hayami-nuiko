@@ -2,7 +2,6 @@
 
 import dataclasses
 import datetime
-import logging
 import os
 import re
 
@@ -13,6 +12,7 @@ import gallery_dl
 
 # parse json
 import orjson
+import structlog
 
 # json-serializable dataclasses
 from dataclasses_json import dataclass_json
@@ -42,7 +42,7 @@ from yaminui.extra.helpers import get_file_size, make_request
 from yaminui.extra.settings import bot_settings
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 # twitter quality
 QUALITY = ("orig", "large", "medium", "small")

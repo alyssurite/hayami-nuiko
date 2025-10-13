@@ -1,6 +1,6 @@
 """Updaters module"""
 
-import logging
+import structlog
 
 # telegram core bot api
 from telegram import Chat
@@ -15,7 +15,7 @@ from yaminui.db import Session
 from yaminui.db.models import Channel, User
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 async def update_chat(chat: Chat) -> None:

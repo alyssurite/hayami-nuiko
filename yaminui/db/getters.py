@@ -1,8 +1,8 @@
 """Getters module"""
 
-import logging
-
 from typing import Optional
+
+import structlog
 
 # async caching
 from aiocache import cached
@@ -29,7 +29,7 @@ from yaminui.db import Session
 from yaminui.db.models import ArtWork, Channel, Post, User
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 @cached(ttl=None, key_builder=lambda *args: args[1])

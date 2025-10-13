@@ -1,12 +1,11 @@
 """Upload module"""
 
-import logging
-
 from base64 import urlsafe_b64encode
 from pathlib import Path
 
 # parse json
 import orjson
+import structlog
 
 # upload dictionary, constants
 from yaminui.extra import UPLOAD_LINKS
@@ -24,7 +23,7 @@ from yaminui.extra.loggers import FILE_HANDLER
 from yaminui.extra.settings import bot_settings
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 
 @retry_request

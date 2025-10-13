@@ -1,8 +1,8 @@
 """Commands module"""
 
-import logging
-
 from pathlib import Path
+
+import structlog
 
 # telegram core bot api
 from telegram import Update
@@ -38,7 +38,7 @@ from yaminui.db.updaters import update_chat
 from yaminui.extra.settings import bot_settings
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 # get help contents
 HELP_MESSAGE = Path(bot_settings.help_file).read_text(encoding="utf-8")

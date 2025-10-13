@@ -1,8 +1,9 @@
 """Functions module"""
 
 import asyncio
-import logging
 import re
+
+import structlog
 
 # telegram core bot api
 from telegram import MessageOrigin, Update
@@ -44,7 +45,7 @@ from yaminui.db.models import ArtWork, Channel, Post
 from yaminui.db.updaters import update_chat
 
 # get logger
-log = logging.getLogger(__name__)
+log = structlog.get_logger(__name__)
 
 # pixiv regex
 pixiv_regex = re.compile(r"^((?:\d+)(?:-\d+)?[.,\s]*){1,10}(?P<above>\!)?$")

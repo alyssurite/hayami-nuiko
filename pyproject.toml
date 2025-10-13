@@ -12,7 +12,6 @@ python-telegram-bot = {version = "^22.4", extras = ["job-queue", "webhooks"]}
 pyrogram = "^2.0.106"
 tgcrypto = "^1.2.5"
 uvloop = {version = "^0.21.0", platform = "linux"}
-python-dotenv = "^1.1.1"
 sqlalchemy = "^2.0.43"
 alembic = "^1.16.5"
 tzdata = "^2025.2"
@@ -32,6 +31,7 @@ fastapi = "^0.117.1"
 uvicorn = "^0.36.0"
 dataclasses-json = "^0.6.7"
 pydantic-settings = "^2.11.0"
+structlog = "^25.4.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.3.0"
