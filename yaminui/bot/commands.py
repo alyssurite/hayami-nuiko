@@ -16,6 +16,9 @@ from yaminui.api import PixivStyle, TwitterStyle
 # bot states
 from yaminui.bot import BotState
 
+# contextvars
+from yaminui.bot.filters import clear_context
+
 # helpers
 from yaminui.bot.helpers import check_post
 
@@ -44,6 +47,7 @@ log = structlog.get_logger(__name__)
 HELP_MESSAGE = Path(bot_settings.help_file).read_text(encoding="utf-8")
 
 
+@clear_context
 async def command_start(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """Sends start message."""
     notify(update, command="/start")
@@ -56,12 +60,14 @@ async def command_start(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     )
 
 
+@clear_context
 async def command_help(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """Sends help message."""
     notify(update, command="/help")
     await send_reply(update, text=HELP_MESSAGE)
 
 
+@clear_context
 async def command_info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Gets post info."""
     notify(update, command="/info")
@@ -69,6 +75,7 @@ async def command_info(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
         await send_post_info(update, post)
 
 
+@clear_context
 async def command_delete(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Deletes post."""
     notify(update, command="/delete")
@@ -91,6 +98,7 @@ async def command_delete(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await send_warn_delete(update, post)
 
 
+@clear_context
 async def command_forward(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """Toggles forwarding to channel."""
     notify(update, command="/forward")
@@ -100,24 +108,28 @@ async def command_forward(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
         await send_error(update, "Set a /channel\\! Can't enable /forward\\.")
 
 
+@clear_context
 async def command_reply(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """Toggles replying to user's messages."""
     notify(update, command="/reply")
     await toggler(update, mode="Replying", field="reply_mode")
 
 
+@clear_context
 async def command_media(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """Toggles adding video/gif to bare links."""
     notify(update, command="/media")
     await toggler(update, mode="Media", field="media_mode")
 
 
+@clear_context
 async def command_pixiv_style(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Changes (switches/cycles) Pixiv style."""
     notify(update, command="/pixiv_style")
     await change_style(update, style=PixivStyle, args=context.args)
 
 
+@clear_context
 async def command_twitter_style(
     update: Update, context: ContextTypes.DEFAULT_TYPE
 ) -> None:
@@ -126,6 +138,7 @@ async def command_twitter_style(
     await change_style(update, style=TwitterStyle, args=context.args)
 
 
+@clear_context
 async def command_channel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Starts process of adding user's channel to database."""
     notify(update, command="/channel")
@@ -145,6 +158,7 @@ async def command_channel(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     return BotState.CHANNEL
 
 
+@clear_context
 async def command_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancels and ends conversation."""
     notify(update, command="/cancel")

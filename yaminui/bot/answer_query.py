@@ -40,6 +40,9 @@ from yaminui.bot import (
     pyro_app,
 )
 
+# contextvars
+from yaminui.bot.filters import clear_context
+
 # bot helpers
 # bot posting
 from yaminui.bot.helpers import (
@@ -381,6 +384,7 @@ async def answer_query_repost(
     return result
 
 
+@clear_context
 async def answer_query(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     notify(update, command="answer_query")
     # answer callback query

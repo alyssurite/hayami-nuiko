@@ -1,5 +1,3 @@
-import logging
-
 import structlog
 
 # telegram core bot api
@@ -230,8 +228,6 @@ def create_bot_app() -> None:
         raise RuntimeError("Job queue was not initialized.")
     # keep alive services with health check requests
     jobs.run_repeating(health_checker, **JOB_HEALTH_CHECKER)
-    # mute messages about job being done
-    logging.getLogger("apscheduler.executors.default").setLevel("WARNING")
 
     return application
 

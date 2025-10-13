@@ -17,6 +17,9 @@ from yaminui.api import LinkType
 # get queue size
 from yaminui.bot import QUEUE_SIZE
 
+# contextvars
+from yaminui.bot.filters import clear_context
+
 # bot forwarding
 from yaminui.bot.forwarding import just_forwarding, just_forwarding_group, no_forwarding
 
@@ -54,6 +57,7 @@ pixiv_regex = re.compile(r"^((?:\d+)(?:-\d+)?[.,\s]*){1,10}(?P<above>\!)?$")
 queue = asyncio.Queue(QUEUE_SIZE)
 
 
+@clear_context
 async def universal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Universal function for handling posting
 
@@ -124,6 +128,7 @@ async def universal(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await queue.get()
 
 
+@clear_context
 async def handle_post(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """Handles posts in channel"""
     notify(update, command="handle_post")
