@@ -31,6 +31,7 @@ psycopg2-binary = "^2.9.10"
 fastapi = "^0.117.1"
 uvicorn = "^0.36.0"
 dataclasses-json = "^0.6.7"
+pydantic-settings = "^2.11.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^4.3.0"
@@ -52,8 +53,8 @@ include = '\.pyi?$'
 
 
 [tool.ruff]
-select = ["E", "F", "B"]
-ignore = []
+lint.select = ["E", "F", "B"]
+lint.ignore = []
 
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -78,13 +79,13 @@ exclude = [
     "node_modules",
     "venv",
 ]
-per-file-ignores = {}
+lint.per-file-ignores = {}
 
 # Same as Black.
 line-length = 90
 
 # Allow unused variables when underscore-prefixed.
-dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
-# Assume Python 3.11.
-target-version = "py311"
+# Assume Python 3.12.
+target-version = "py312"

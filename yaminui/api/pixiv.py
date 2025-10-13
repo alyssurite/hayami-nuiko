@@ -1,7 +1,6 @@
 """Pixiv module"""
 
 import logging
-import os
 
 from typing import Optional
 
@@ -23,10 +22,13 @@ from yaminui.extra import FAKE_HEADERS
 # send requests
 from yaminui.extra.helpers import make_request, retry_request
 
+# env variables
+from yaminui.extra.settings import bot_settings
+
 # pixiv tokens
 pixiv_api = {
-    "ACCESS_TOKEN": os.environ["PX_ACCESS"],
-    "REFRESH_TOKEN": os.environ["PX_REFRESH"],
+    "ACCESS_TOKEN": bot_settings.px_access,
+    "REFRESH_TOKEN": bot_settings.px_refresh,
 }
 
 # get logger
@@ -101,7 +103,7 @@ async def get_pixiv_info(pixiv_id: int) -> ArtWorkMedia:
     """
     async with PixivClient() as client:
         aapi = AppPixivAPI(client=client)
-        await aapi.login(refresh_token=os.environ["PX_REFRESH"])
+        await aapi.login(refresh_token=bot_settings.px_refresh)
         # Doing stuff...
         log.debug("Trying to fetch artwork...")
         json_result = await aapi.illust_detail(pixiv_id)

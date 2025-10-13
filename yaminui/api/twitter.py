@@ -38,6 +38,9 @@ from yaminui.extra import FAKE_HEADERS
 # get file size, send requests
 from yaminui.extra.helpers import get_file_size, make_request
 
+# env variables
+from yaminui.extra.settings import bot_settings
+
 # get logger
 log = logging.getLogger(__name__)
 
@@ -150,12 +153,12 @@ gallery_dl.config.set(("extractor", "twitter"), "csrf", "cookies")
 gallery_dl.config.set(
     ("extractor", "twitter", "cookies"),
     "auth_token",
-    os.environ["TW_TOKEN"],
+    bot_settings.tw_token,
 )
 gallery_dl.config.set(
     ("extractor", "twitter", "cookies"),
     "ct0",
-    os.environ["TW_COOKIE"],
+    bot_settings.tw_cookie,
 )
 
 
@@ -501,9 +504,9 @@ async def get_from_secret_api(tweet_id: int) -> Optional[Tweet]:
         Optional[Tweet]: tweet dictionary
     """
     if response := await make_request(
-        url=os.environ["API_URL"],
+        url=bot_settings.secret_api_url,
         params={
-            "api_key": os.environ["API_KEY"],
+            "api_key": bot_settings.secret_api_key,
             "tweet_id": tweet_id,
         },
         timeout=60,

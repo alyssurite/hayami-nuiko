@@ -1,7 +1,6 @@
 """ "Posting functions module"""
 
 import logging
-import os
 
 # sqlalchemy exceptions
 from sqlalchemy.exc import IntegrityError
@@ -51,6 +50,9 @@ from yaminui.db.getters import get_artwork
 # database models
 from yaminui.db.models import ArtWork, Post
 
+# env variables
+from yaminui.extra.settings import bot_settings
+
 # uploading media
 from yaminui.extra.upload import upload_media
 
@@ -58,7 +60,7 @@ from yaminui.extra.upload import upload_media
 log = logging.getLogger(__name__)
 
 # banned from posting on their own
-ALERT_ID = int(os.environ["ALERT_ID"])
+ALERT_ID = int(bot_settings.alert_id)
 
 
 async def just_posting_twitter(

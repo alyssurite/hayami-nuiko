@@ -5,15 +5,18 @@ import os
 # working with env
 from dotenv import load_dotenv
 
+# env variables
+from yaminui.extra.settings import bot_settings
+
 # load .env file
 load_dotenv()
 
 # upload dictionary
 UPLOAD_LINKS = {
-    "user": int(os.getenv("USER_ID") or 0),
-    "media": os.getenv("GD_MEDIA"),
-    "log": os.getenv("GD_LOG"),
-    "resizer": os.getenv("RESIZER_API"),
+    "user": int(bot_settings.user_id or 0),
+    "media": bot_settings.gd_media,
+    "log": bot_settings.gd_log,
+    "resizer": bot_settings.resizer_api,
 }
 
 # constants for trying

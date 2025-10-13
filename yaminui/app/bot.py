@@ -1,5 +1,4 @@
 import logging
-import os
 
 # telegram core bot api
 from telegram import Update
@@ -55,6 +54,9 @@ from yaminui.bot.helpers import channel_check
 # bot jobs
 from yaminui.bot.jobs import health_checker
 
+# env variables
+from yaminui.extra.settings import bot_settings
+
 # get logger
 log = logging.getLogger(__name__)
 
@@ -64,7 +66,7 @@ def create_bot_app() -> None:
     # create application
     application = (
         ApplicationBuilder()
-        .token(os.environ["TOKEN"])
+        .token(bot_settings.token)
         .read_timeout(READ_TIMEOUT)
         .write_timeout(WRITE_TIMEOUT)
         .post_init(on_bot_init)

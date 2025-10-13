@@ -1,6 +1,5 @@
 """Filter functions module"""
 
-import os
 
 # telegram core bot api
 from telegram import Chat, Update
@@ -11,6 +10,9 @@ from telegram.ext import ApplicationHandlerStop, ContextTypes
 # database getters
 from yaminui.db.getters import check_channel, check_user
 
+# env variables
+from yaminui.extra.settings import bot_settings
+
 
 async def filter_out(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Essentially this function provides a ban."""
@@ -19,6 +21,6 @@ async def filter_out(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     if update.effective_chat.type == Chat.CHANNEL and await check_channel(chat_id):
         return
-    if chat_id == int(os.environ["USER_ID"]):
+    if chat_id == int(bot_settings.user_id):
         return
     raise ApplicationHandlerStop

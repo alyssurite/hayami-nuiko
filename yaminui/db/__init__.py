@@ -7,11 +7,14 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
+# env variables
+from yaminui.extra.settings import bot_settings
+
 # load .env file
 load_dotenv()
 
 # database connection string
-DB_URI = os.environ["DATABASE_URL"]
+DB_URI = bot_settings.database_url
 
 # engine settings
 ENGINE = create_engine(DB_URI, pool_pre_ping=True)

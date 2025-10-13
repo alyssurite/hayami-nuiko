@@ -1,7 +1,6 @@
 """Commands module"""
 
 import logging
-import os
 
 from pathlib import Path
 
@@ -35,11 +34,14 @@ from yaminui.db.getters import get_user_channel
 # database updaters
 from yaminui.db.updaters import update_chat
 
+# env variables
+from yaminui.extra.settings import bot_settings
+
 # get logger
 log = logging.getLogger(__name__)
 
 # get help contents
-HELP_MESSAGE = Path(os.environ["HELP_FILE"]).read_text(encoding="utf-8")
+HELP_MESSAGE = Path(bot_settings.help_file).read_text(encoding="utf-8")
 
 
 async def command_start(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:

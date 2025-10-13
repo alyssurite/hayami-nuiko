@@ -17,6 +17,9 @@ from yaminui.app.bot import bot_application
 # get bot modes and constants
 from yaminui.bot import BotMode, on_bot_init, on_bot_stop
 
+# env variables
+from yaminui.extra.settings import bot_settings
+
 # get logger
 log = logging.getLogger(__name__)
 
@@ -44,7 +47,7 @@ async def start_app(mode: int = BotMode.WEBHOOK):
         await bot_application.start()
         if (hook_url := os.environ.get("HOOK_URL")) and mode == BotMode.WEBHOOK:
             log.info("Running in webhook mode!")
-            hook = f'https://{hook_url}/{os.environ["TOKEN"]}'
+            hook = f"https://{hook_url}/{bot_settings.token}"
             log.info("Webhook URL | PORT: %s | %s.", hook, port)
             await bot_application.bot.set_webhook(hook, allowed_updates=Update.ALL_TYPES)
         else:

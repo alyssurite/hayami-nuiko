@@ -15,13 +15,16 @@ from typing import Optional
 # logtail for logging
 from logtail import LogtailHandler
 
+# env variables
+from yaminui.extra.settings import bot_settings
+
 # current timestamp & app directory
 DATE_RUN = datetime.now()
 FILE_DIR = Path(__file__).parent.parent.parent  # /extra -> /yoiyoi -> /app
 
 
 # get config
-CONFIG = tomllib.load(Path(os.environ["PATH_SETTINGS"]).open("rb"))
+CONFIG = tomllib.load(Path(bot_settings.log_settings_file).open("rb"))
 
 # set basic config to logger
 logging.basicConfig(

@@ -1,7 +1,6 @@
 """Web Application"""
 
 import logging
-import os
 
 # web application
 from fastapi import FastAPI, Request
@@ -14,6 +13,9 @@ from telegram import Update
 
 # the bot
 from yaminui.app.bot import bot_application
+
+# env variables
+from yaminui.extra.settings import bot_settings
 
 # get logger
 log = logging.getLogger(__name__)
@@ -36,7 +38,7 @@ async def health():
     return JSONResponse(ok_response)
 
 
-@api_application.post(f'/{os.environ["TOKEN"]}')
+@api_application.post(f"/{bot_settings.token}")
 async def telegram(request: Request):
     await bot_application.update_queue.put(
         Update.de_json(

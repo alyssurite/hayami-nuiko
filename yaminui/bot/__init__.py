@@ -15,6 +15,9 @@ from telegram.ext import Application
 # escaping special markdown characters
 from telegram.helpers import escape_markdown
 
+# env variables
+from yaminui.extra.settings import bot_settings
+
 # uploading media
 from yaminui.extra.upload import upload_log
 
@@ -51,9 +54,9 @@ MISFIRE_GRACE_TIME = 30
 
 pyro_app = Client(
     "yaminuibot",
-    api_id=os.environ["API_ID"],
-    api_hash=os.environ["API_HASH"],
-    bot_token=os.environ["TOKEN"],
+    api_id=bot_settings.api_id,
+    api_hash=bot_settings.api_hash,
+    bot_token=bot_settings.token,
 )
 
 

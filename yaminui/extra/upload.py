@@ -1,7 +1,6 @@
 """Upload module"""
 
 import logging
-import os
 
 from base64 import urlsafe_b64encode
 from pathlib import Path
@@ -20,6 +19,9 @@ from yaminui.extra.helpers import make_request, retry_request
 
 # logger file handler
 from yaminui.extra.loggers import FILE_HANDLER
+
+# env variables
+from yaminui.extra.settings import bot_settings
 
 # get logger
 log = logging.getLogger(__name__)
@@ -43,7 +45,7 @@ async def upload(
     Returns:
         bool: did uploading succeed or not
     """
-    if os.getenv("LOCAL"):
+    if bot_settings.local_mode:
         log.info("Running in local mode, skipping...")
         return
     log.info("Uploading %s %r...", kind, name)
@@ -90,7 +92,7 @@ async def upload_media(
         user (int, optional): telegram user id. Defaults to 0.
         order (list[int], optional): which artworks to upload. Defaults to None.
     """
-    if os.getenv("LOCAL"):
+    if bot_settings.local_mode:
         log.info("Running in local mode, skipping...")
         return
     if user != UPLOAD_LINKS["user"] or info is None:
@@ -118,7 +120,7 @@ async def upload_media(
 
 async def upload_log() -> None:
     """Uploads log file to cloud"""
-    if os.getenv("LOCAL"):
+    if bot_settings.local_mode:
         log.info("Running in local mode, skipping...")
         return
     if not FILE_HANDLER:
