@@ -8,27 +8,27 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
-python-telegram-bot = {version = "^22.4", extras = ["job-queue", "webhooks"]}
+python-telegram-bot = {version = "^22.5", extras = ["job-queue", "webhooks"]}
 pyrogram = "^2.0.106"
 tgcrypto = "^1.2.5"
 uvloop = {version = "^0.21.0", platform = "linux"}
-sqlalchemy = "^2.0.43"
-alembic = "^1.16.5"
+sqlalchemy = "^2.0.44"
+alembic = "^1.17.0"
 tzdata = "^2025.2"
 python-magic = {version = "^0.4.27", platform = "linux"}
 python-magic-bin = {version = "^0.4.14", platform = "win32"}
 tenacity = "^9.1.2"
-beautifulsoup4 = "^4.13.5"
+beautifulsoup4 = "^4.14.2"
 pillow = "^11.3.0"
 logtail-python = "^0.3.4"
 pixivpy-async = "^1.2.14"
 aiocache = "^0.12.3"
 orjson = "^3.11.3"
 python-dateutil = "^2.9.0.post0"
-gallery-dl = "^1.30.7"
-psycopg2-binary = "^2.9.10"
-fastapi = "^0.117.1"
-uvicorn = "^0.36.0"
+gallery-dl = "^1.30.10"
+psycopg2-binary = "^2.9.11"
+fastapi = "^0.119.0"
+uvicorn = "^0.37.0"
 dataclasses-json = "^0.6.7"
 pydantic-settings = "^2.11.0"
 structlog = "^25.4.0"
