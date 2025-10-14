@@ -235,7 +235,21 @@ LINKS = {
         """,
         "link": "https://twitter.com/{author}/status/{id}",
         "link_id": "https://twitter.com/i/web/status/{id}",
-        "t.co": r"https:\/\/t\.co\/\w{10}$",
+        "media": r"""(?x)
+            \s(?:
+                (?:https:\/\/t\.co\/\w{10})
+            |
+                (?:
+                    (?:http(s)?\:)\/\/
+                    (?:twitter|x)\.com\/
+                    (?:[^\/]+)\/
+                    (?:status(?:es)?)\/
+                    (?:\d+)\/
+                    (?:photo|video)
+                    (?:\/\d+)?
+                )
+            )$
+        """,
         "image": "https://pbs.twimg.com/media/{id}?format={format}&name={size}",
         "type": LinkType.TWITTER,
     },
