@@ -609,13 +609,14 @@ async def get_twitter_links(tweet_id: int | str) -> Optional[ArtWorkMedia]:
         log.error("Invalid tweet id.")
         return
     try:
-        if not (
-            tweet := (
-                await get_from_twimg_api(tweet_id)
-                or await get_from_twitter_api(tweet_id)
-                or await get_from_secret_api(tweet_id)
-            )
+        for get_tweet in (
+            get_from_secret_api,  # best
+            get_from_twimg_api,  # from twitter
+            get_from_twitter_api,  # great
         ):
+            if tweet := await get_tweet(tweet_id):
+                break
+        else:
             log.error("No tweet.")
             return
     except Exception as ex:

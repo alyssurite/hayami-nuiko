@@ -236,7 +236,8 @@ LINKS = {
         "link": "https://twitter.com/{author}/status/{id}",
         "link_id": "https://twitter.com/i/web/status/{id}",
         "media": r"""(?x)
-            \s(?:
+            (?:\s)?
+            (?:
                 (?:https:\/\/t\.co\/\w{10})
             |
                 (?:
