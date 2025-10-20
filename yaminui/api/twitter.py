@@ -554,7 +554,7 @@ async def get_from_secret_api(tweet_id: int) -> Optional[Tweet]:
             quoted_user = quote_info["user"]
             quote = Tweet(
                 url=quote_info["url"],
-                date=parse(quote_info["date"]),
+                date=datetime.datetime.fromtimestamp(quote_info["date"]),
                 rawContent=quote_info["rawContent"],
                 renderedContent=quote_info["renderedContent"],
                 id=quote_info["id"],
