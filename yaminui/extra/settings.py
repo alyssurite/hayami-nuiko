@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from pydantic import AnyUrl, BaseModel, Field
+from pydantic import AnyUrl, BaseModel, Field, field_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -103,6 +103,13 @@ class BotSettings(BaseSettings):
 
     # health check URL
     health_check_url: Optional[AnyUrl] = Field(None)
+
+    @field_validator("health_check_url", mode="before")
+    @classmethod
+    def allow_empty_string_as_none(cls, value):
+        if value == "":
+            return None
+        return value
 
     # special alert case
     alert_id: int = Field(0)

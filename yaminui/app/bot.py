@@ -232,8 +232,9 @@ def create_bot_app() -> None:
     # get job queue and ping other bots
     if not (jobs := application.job_queue):
         raise RuntimeError("Job queue was not initialized.")
-    # keep alive services with health check requests
-    jobs.run_repeating(health_checker, **JOB_HEALTH_CHECKER)
+    if bot_settings.health_check_url:
+        # keep alive services with health check requests
+        jobs.run_repeating(health_checker, **JOB_HEALTH_CHECKER)
 
     return application
 
