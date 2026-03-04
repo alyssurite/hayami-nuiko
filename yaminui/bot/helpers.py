@@ -380,8 +380,7 @@ async def normalize_order(
     return tuple(ids)
 
 
-HTTP_LINK_REGEX = re.compile(
-    r"""(?x)
+HTTP_LINK_REGEX = re.compile(r"""(?x)
         t\.me
         \/
         (?:
@@ -397,8 +396,7 @@ HTTP_LINK_REGEX = re.compile(
             (?:\?\w+)
         )?
         $
-    """
-)
+    """)
 TG_LINK_REGEX = re.compile(r"tg://(?:(?:resolve\?)|(?:privatepost\?))")
 
 
