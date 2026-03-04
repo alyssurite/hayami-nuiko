@@ -29,6 +29,8 @@ class BotSettings(BaseSettings):
     api_hash: str = Field("")
     token: str = Field("")
 
+    local_server: str = Field("")
+
     # database URL
     database_url: str = Field("sqlite:///./db.sqlite3")
 
