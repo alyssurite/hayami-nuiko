@@ -9,9 +9,6 @@ from typing import AsyncGenerator
 import magic
 import structlog
 
-# working with images
-from PIL import Image
-
 # link types
 from yaminui.api import LinkType
 
@@ -118,21 +115,15 @@ async def download_media(
                 or info["type"] == LinkType.TWITTER
                 and info["media"][idx] == "photo"
             ):
-                with Image.open(file) as im:
-                    log.debug("Original size: %d x %d.", *im.size)
-                    log.debug("Size sum in pixels: %d.", sum(im.size))
-                    log.debug("Image size in bytes: %d.", file.seek(0, 2))
-                    # check if its width + height > 10000 or its size > 10 MB
-                    if sum(im.size) > 10000 or file.tell() > 10 << 20:
-                        file.seek(0)
-                        image = await file_request(
-                            UPLOAD_LINKS["resizer"],
-                            "POST",
-                            timeout=120,
-                            files={"upload_file": file.read()},
-                        )
-                        file.seek(0)
-                        file.truncate()
-                        file.write(image)
+                file.seek(0)
+                image = await file_request(
+                    UPLOAD_LINKS["resizer"],
+                    "POST",
+                    timeout=120,
+                    files={"upload_file": file.read()},
+                )
+                file.seek(0)
+                file.truncate()
+                file.write(image)
             file.seek(0)
             yield (filename, file)
