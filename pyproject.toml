@@ -8,32 +8,32 @@ package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.12"
-python-telegram-bot = {version = "^22.7", extras = ["job-queue", "webhooks"]}
+python-telegram-bot = {version = "^22.8", extras = ["job-queue", "webhooks"]}
 pyrogram = "^2.0.106"
 tgcrypto = "^1.2.5"
 uvloop = {version = "^0.22.1", platform = "linux"}
-sqlalchemy = "^2.0.48"
-alembic = "^1.18.4"
-tzdata = "^2025.3"
+sqlalchemy = "^2.0.51"
+alembic = "^1.18.5"
+tzdata = "^2026.3"
 python-magic = {version = "^0.4.27", platform = "linux"}
 python-magic-bin = {version = "^0.4.14", platform = "win32"}
 tenacity = "^9.1.4"
-beautifulsoup4 = "^4.14.3"
-logtail-python = "^0.3.4"
+beautifulsoup4 = "^4.15.0"
+logtail-python = "^0.4.0"
 pixivpy-async = "^1.2.14"
 aiocache = "^0.12.3"
-orjson = "^3.11.8"
+orjson = "^3.11.9"
 python-dateutil = "^2.9.0.post0"
-gallery-dl = "^1.31.10"
-psycopg2-binary = "^2.9.11"
-fastapi = "^0.135.3"
-uvicorn = "^0.42.0"
+gallery-dl = "^1.32.9"
+psycopg2-binary = "^2.9.12"
+fastapi = "^0.141.1"
+uvicorn = "^0.52.1"
 dataclasses-json = "^0.6.7"
-pydantic-settings = "^2.13.1"
-structlog = "^25.5.0"
+pydantic-settings = "^2.14.2"
+structlog = "^26.1.0"
 
 [tool.poetry.group.dev.dependencies]
-pre-commit = "^4.5.1"
+pre-commit = "^4.6.1"
 
 [tool.isort]
 profile = "black"

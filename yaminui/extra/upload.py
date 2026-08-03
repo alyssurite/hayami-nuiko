@@ -26,6 +26,26 @@ from yaminui.extra.settings import bot_settings
 log = structlog.get_logger(__name__)
 
 
+def _parse_json_response(response, action_desc: str) -> dict:
+    """Safely parses JSON response, logging raw content preview if decoding fails."""
+    try:
+        return orjson.loads(response.content)
+    except orjson.JSONDecodeError as err:
+        status_code = getattr(response, "status_code", "N/A")
+        raw_preview = response.content[:300].decode("utf-8", errors="replace")
+
+        log.error(
+            "Failed to parse JSON response",
+            action=action_desc,
+            status_code=status_code,
+            raw_preview=raw_preview,
+        )
+        raise RuntimeError(
+            f"Server returned non-JSON response during {action_desc} "
+            f"[HTTP {status_code}]: {raw_preview[:100]}"
+        ) from err
+
+
 @retry_request
 async def upload(
     file: bytes,
@@ -48,33 +68,44 @@ async def upload(
         log.info("Running in local mode, skipping...")
         return
     log.info("Uploading %s %r...", kind, name)
-    params = {"name": name, "size": len(file)}
+    file_size = len(file)
+    params = {"name": name, "size": file_size}
+
+    # Step 1: Probe file existence via lightweight 'check' action
     if kind != "log file":
+        check_params = {**params, "action": "check"}
         response = await make_request(
             link,
             "POST",
-            params=params,
-            data=urlsafe_b64encode(b"\x00"),
-            timeout=120,
+            params=check_params,
+            follow_redirects=True,
+            timeout=30,
         )
-        info = orjson.loads(response.content)
-        log.debug("JSON: %r.", info)
-        if not info["ok"]:
-            log.info("%s %r already exists.", kind.capitalize(), name)
+        info = _parse_json_response(response, f"check probe for '{name}'")
+        log.debug("Check JSON: %r", info)
+
+        if not info.get("ok"):
+            log.info("%s %r already exists on Drive.", kind.capitalize(), name)
             return False
+
+    # Step 2: Perform full upload
+    upload_params = {**params, "action": "upload"}
     response = await make_request(
         link,
         "POST",
-        params=params,
+        params=upload_params,
         data=urlsafe_b64encode(file),
+        follow_redirects=True,
         timeout=120,
     )
-    info = orjson.loads(response.content)
-    log.debug("JSON: %r.", info)
-    if not info["ok"]:
-        log.info("%s %r already exists.", kind.capitalize(), name)
-        log.error("Something went wrong.")
-        raise
+    info = _parse_json_response(response, f"upload for '{name}'")
+    log.debug("Upload JSON: %r", info)
+
+    if not info.get("ok"):
+        error_msg = info.get("error", "Unknown upload error")
+        log.error("Upload failed for %s %r: %s", kind, name, error_msg)
+        raise RuntimeError(f"Google Drive upload failed: {error_msg}")
+
     log.info("Done uploading %s %r.", kind, name)
     return True
 
@@ -94,26 +125,37 @@ async def upload_media(
     if bot_settings.local_mode:
         log.info("Running in local mode, skipping...")
         return
-    if user != UPLOAD_LINKS["user"] or info is None:
-        return  # silently exit
-    if not UPLOAD_LINKS["media"]:
-        log.error("No media upload link.")
+    if user != UPLOAD_LINKS.get("user") or not info:
         return
+
+    if not UPLOAD_LINKS.get("media"):
+        log.error("No media upload link configured.")
+        return
+
+    # Suffix mapping for kind description
+    video_exts = {"mp4", "octet-stream", "mov", "ismv"}
+    image_exts = {"jpg", "jpeg", "jif", "jfif", "bmp", "png", "webp"}
+
     async for filename, file in download_media(info, order=order):
-        suffix = filename.rsplit(".", 1)[1]
-        kind = f"file ({suffix})"
-        match suffix:
-            case "mp4" | "octet-stream" | "mov" | "ismv":
-                kind = "video"
-            case "jpg" | "jpeg" | "jif" | "jfif" | "bmp" | "png" | "webp":
-                kind = "image"
-            case "gif":
-                kind = "animated gif"
+        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+
+        if ext in video_exts:
+            kind = "video"
+        elif ext in image_exts:
+            kind = "image"
+        elif ext == "gif":
+            kind = "animated gif"
+        else:
+            kind = f"file ({ext})" if ext else "file"
+
+        # If file is a file-like object, read bytes, otherwise use directly
+        file_bytes = file.read() if hasattr(file, "read") else file
+
         await upload(
-            file.read(),
+            file_bytes,
             filename,
             UPLOAD_LINKS["media"],
-            kind.lower(),
+            kind,
         )
 
 
