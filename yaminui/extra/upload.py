@@ -32,7 +32,7 @@ def _parse_json_response(response, action_desc: str) -> dict:
         return orjson.loads(response.content)
     except orjson.JSONDecodeError as err:
         status_code = getattr(response, "status_code", "N/A")
-        raw_preview = response.content[:300].decode("utf-8", errors="replace")
+        raw_preview = response.content.decode("utf-8", errors="replace")
 
         log.error(
             "Failed to parse JSON response",
