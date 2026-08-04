@@ -113,6 +113,11 @@ async def upload(
             log.debug("Check JSON: %r", info)
 
             if not info.get("ok"):
+                error_msg = info.get("error", "Unknown check error")
+                log.error("Check probe failed for %s %r: %s", kind, name, error_msg)
+                raise RuntimeError(f"Google Drive check failed: {error_msg}")
+
+            if info.get("exists"):
                 log.info("%s %r already exists on Drive.", kind.capitalize(), name)
                 return False
 
@@ -133,6 +138,10 @@ async def upload(
             error_msg = info.get("error", "Unknown upload error")
             log.error("Upload failed for %s %r: %s", kind, name, error_msg)
             raise RuntimeError(f"Google Drive upload failed: {error_msg}")
+
+        if info.get("exists"):
+            log.info("%s %r already exists on Drive (skipped).", kind.capitalize(), name)
+            return False
 
     log.info("Done uploading %s %r.", kind, name)
     return True
