@@ -31,7 +31,7 @@ from yaminui.extra.settings import bot_settings
 log = structlog.get_logger(__name__)
 
 # Concurrency lock to prevent Google Apps Script connection thrashing
-SCRIPT_SEMAPHORE = asyncio.Semaphore(1)
+SCRIPT_SEMAPHORE = asyncio.Semaphore(4)
 
 
 def _parse_json_response(response, action_desc: str) -> dict:
