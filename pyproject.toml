@@ -12,8 +12,8 @@ python-telegram-bot = {version = "^22.8", extras = ["job-queue", "webhooks"]}
 pyrogram = "^2.0.106"
 tgcrypto = "^1.2.5"
 uvloop = {version = "^0.22.1", platform = "linux"}
-sqlalchemy = "^2.0.51"
-alembic = "^1.18.5"
+sqlalchemy = "^2.0.52"
+alembic = "^1.19.1"
 tzdata = "^2026.3"
 python-magic = {version = "^0.4.27", platform = "linux"}
 python-magic-bin = {version = "^0.4.14", platform = "win32"}
@@ -29,11 +29,11 @@ psycopg2-binary = "^2.9.12"
 fastapi = "^0.141.1"
 uvicorn = "^0.52.1"
 dataclasses-json = "^0.6.7"
-pydantic-settings = "^2.14.2"
+pydantic-settings = "^2.15.0"
 structlog = "^26.1.0"
 
 [tool.poetry.group.dev.dependencies]
-pre-commit = "^4.6.1"
+pre-commit = "^4.6.2"
 
 [tool.isort]
 profile = "black"
