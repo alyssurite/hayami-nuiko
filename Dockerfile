@@ -1,4 +1,4 @@
-FROM python:3.10.7-bullseye AS base
+FROM python:3.13-trixie AS base
 
 # Setup env
 ENV LANG C.UTF-8
