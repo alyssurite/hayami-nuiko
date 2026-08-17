@@ -1,22 +1,43 @@
+# syntax=docker/dockerfile:1
+
 FROM python:3.13-trixie AS base
 
 # Setup env
-ENV LANG C.UTF-8
-ENV LC_ALL C.UTF-8
-ENV PYTHONUNBUFFERED 1
-ENV PYTHONFAULTHANDLER 1
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONHASHSEED random
-ENV PIP_NO_CACHE_DIR off
-ENV PIP_DEFAULT_TIMEOUT 100
-ENV PIP_DISABLE_PIP_VERSION_CHECK on
+ENV LANG=C.UTF-8 \
+    LC_ALL=C.UTF-8 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONFAULTHANDLER=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONHASHSEED=random \
+    PIP_NO_CACHE_DIR=off \
+    PIP_DEFAULT_TIMEOUT=100 \
+    PIP_DISABLE_PIP_VERSION_CHECK=on \
+    POETRY_VERSION=2.1.1 \
+    POETRY_VIRTUALENVS_CREATE=false
 
+# Set working directory
 WORKDIR /app
-COPY . .
 
-# Install pipenv and compilation dependencies
-RUN python3 -m pip install --upgrade pip
-RUN pip3 install pipenv
-RUN pipenv install --system --deploy --ignore-pipfile
+# Set default shell to bash with pipefail
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
-CMD python3 /app/main.py;
+# Create non-root user
+RUN useradd -m bot
+
+# Install poetry
+RUN pip install --no-cache-dir "poetry==$POETRY_VERSION"
+
+# Copy dependency definition files first (layer caching optimization)
+COPY pyproject.toml poetry.lock* ./
+
+# Install project dependencies
+RUN poetry install --without dev --no-root --no-interaction --no-ansi
+
+# Copy application source code
+COPY --chown=bot:bot . .
+
+# Switch to non-root user
+USER bot
+
+# Run application
+CMD ["python3", "main.py"]
