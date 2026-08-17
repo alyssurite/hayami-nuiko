@@ -56,6 +56,7 @@ pyro_app = Client(
     api_id=bot_settings.api_id,
     api_hash=bot_settings.api_hash,
     bot_token=bot_settings.token,
+    workdir="/app",
 )
 
 

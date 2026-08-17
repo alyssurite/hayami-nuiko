@@ -33,8 +33,11 @@ COPY pyproject.toml poetry.lock* ./
 # Install project dependencies
 RUN poetry install --without dev --no-root --no-interaction --no-ansi
 
-# Copy application source code
+# Copy application source code with correct ownership
 COPY --chown=bot:bot . .
+
+# Ensure the working directory (and session directory) is owned by bot
+RUN chown -R bot:bot /app
 
 # Switch to non-root user
 USER bot
