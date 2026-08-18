@@ -620,7 +620,12 @@ async def get_twitter_links(tweet_id: int | str) -> Optional[ArtWorkMedia]:
             log.error("No tweet.")
             return
     except Exception as ex:
-        log.error("Exception occured: %s.", ex.args)
+        log.error(
+            "Error %s: %r.",
+            ex.__class__.__name__,
+            ex,
+            exc_info=True,
+        )
         return
     if not tweet.media:
         log.error("No media.")
