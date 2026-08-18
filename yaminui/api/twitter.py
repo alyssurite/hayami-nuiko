@@ -247,7 +247,7 @@ async def get_from_twimg_api(tweet_id: int) -> Optional[Tweet]:
                     tcourl=url["url"],
                     indices=url["indices"],
                 )
-                for url in tweet_info["entities"]["urls"]
+                for url in tweet_info["entities"]["media"]
             ]
             or None,
             quotedTweet=quote_info,
@@ -611,8 +611,8 @@ async def get_twitter_links(tweet_id: int | str) -> Optional[ArtWorkMedia]:
     try:
         for get_tweet in (
             get_from_secret_api,  # best
-            # get_from_twimg_api,  # from twitter
-            # get_from_twitter_api,  # great
+            get_from_twimg_api,  # from twitter
+            get_from_twitter_api,  # great
         ):
             if tweet := await get_tweet(tweet_id):
                 break
