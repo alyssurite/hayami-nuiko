@@ -162,6 +162,125 @@ gallery_dl.config.set(
 )
 
 
+async def get_from_twimg_api(tweet_id: int) -> Optional[Tweet]:
+    if response := await make_request(
+        url="https://cdn.syndication.twimg.com/tweet-result",
+        method="GET",
+        headers={
+            **FAKE_HEADERS,
+            "Accept-Encoding": "gzip, deflate, br",
+            "Origin": "https://platform.twitter.com",
+            "Referer": "https://platform.twitter.com/",
+        },
+        params={
+            "id": str(tweet_id),
+            "lang": "en",
+            "token": "ghostery",
+        },
+    ):
+        # check response
+        if response.is_error:
+            return
+        log.debug("Request to API succeeded.")
+        try:
+            tweet_info = orjson.loads(response.content)
+        except orjson.JSONDecodeError:
+            log.warning("Couldn't decode json response: %r.", response.content)
+            return
+        log.debug("JSON: %r.", tweet_info)
+        if tomb := tweet_info.get("tombstone"):
+            error = tomb["text"]["text"]
+            if error.startswith("Age-restricted"):
+                log.warning("Age-restricted content.")
+            else:
+                log.warning("Dead tweet.")
+            return
+        if not (user := tweet_info.get("user")):
+            log.warning("Scraping failed.")
+            return
+        if not (media_info := tweet_info.get("mediaDetails")):
+            log.warning("No media tweet.")
+            return
+        quote_info = None
+        if quote := tweet_info.get("quoted_tweet", None):
+            quote_info = Tweet(
+                url=TWI["link"].format(
+                    id=quote["id_str"],
+                    author=quote["user"]["screen_name"],
+                ),
+                date=parse(quote["created_at"]),
+                rawContent=quote["text"],
+                renderedContent=quote["text"],
+                id=quote["id_str"],
+                user=None,
+                replyCount=0,
+                retweetCount=0,
+                likeCount=0,
+                quoteCount=0,
+                conversationId=quote["id_str"],
+                lang=quote["lang"],
+            )
+        return Tweet(
+            url=TWI["link"].format(
+                id=tweet_info["id_str"],
+                author=user["screen_name"],
+            ),
+            date=parse(tweet_info["created_at"]),
+            rawContent=tweet_info["text"],
+            renderedContent=tweet_info["text"],
+            id=tweet_info["id_str"],
+            user=User(
+                username=user["screen_name"],
+                id=user["id_str"],
+                displayname=user["name"],
+            ),
+            replyCount=0,
+            retweetCount=0,
+            likeCount=0,
+            quoteCount=0,
+            conversationId=tweet_info["id_str"],
+            lang=tweet_info["lang"],
+            links=[
+                TextLink(
+                    text=url["display_url"],
+                    url=url["expanded_url"],
+                    tcourl=url["url"],
+                    indices=url["indices"],
+                )
+                for url in tweet_info["entities"]["urls"]
+            ]
+            or None,
+            quotedTweet=quote_info,
+            media=(
+                [
+                    (
+                        Photo(
+                            previewUrl=medium["media_url_https"],
+                            fullUrl=medium["media_url_https"],
+                        )
+                        if medium["type"] == "photo"
+                        else Video(
+                            thumbnailUrl=medium["media_url_https"],
+                            variants=[
+                                VideoVariant(
+                                    url=variant["url"],
+                                    contentType=variant["content_type"],
+                                    bitrate=variant.get("bitrate"),
+                                )
+                                for variant in medium["video_info"]["variants"]
+                            ],
+                            duration=(medium["video_info"].get("duration_millis") or 0)
+                            / 1000,
+                        )
+                    )
+                    for medium in media_info
+                ]
+                if media_info
+                else None
+            ),
+        )
+
+
 async def get_info_from_twitter_graphql(tweet_id: int) -> Optional[dict]:
     try:
         data_job = gallery_dl.job.DataJob(
@@ -492,6 +611,7 @@ async def get_twitter_links(tweet_id: int | str) -> Optional[ArtWorkMedia]:
     try:
         for get_tweet in (
             get_from_secret_api,  # best
+            # get_from_twimg_api,  # from twitter
             # get_from_twitter_api,  # great
         ):
             if tweet := await get_tweet(tweet_id):
