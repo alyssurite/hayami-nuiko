@@ -30,13 +30,12 @@ async def start_app(mode: int = BotMode.WEBHOOK):
     Args:
         mode (int, optional): bot mode. Defaults to BotMode.WEBHOOK.
     """
-    port = int(os.environ.get("PORT", "8443"))
     # create web server
     web_server = uvicorn.Server(
         config=uvicorn.Config(
             app=api_application,
             host="0.0.0.0",
-            port=port,
+            port=bot_settings.private_port,
             log_config=None,
         )
     )
@@ -47,8 +46,8 @@ async def start_app(mode: int = BotMode.WEBHOOK):
         await bot_application.start()
         if (hook_url := os.environ.get("HOOK_URL")) and mode == BotMode.WEBHOOK:
             log.info("Running in webhook mode!")
-            hook = f"https://{hook_url}/{bot_settings.token}"
-            log.info("Webhook URL | PORT: %s | %s.", hook, port)
+            hook = f"https://{hook_url}:{bot_settings.port}/{bot_settings.token}"
+            log.info("Webhook URL | PORT: %s | %s.", hook, bot_settings.port)
             await bot_application.bot.set_webhook(hook, allowed_updates=Update.ALL_TYPES)
         else:
             log.info("Running in polling mode!")

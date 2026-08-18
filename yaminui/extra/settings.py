@@ -73,6 +73,9 @@ class BotSettings(BaseSettings):
     # port
     port: int = Field(8443)
 
+    # private port
+    private_port: int = Field(8443)
+
     ##### bot files #####
 
     # cache directory
