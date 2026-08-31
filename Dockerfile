@@ -22,8 +22,12 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
 # Install compilers and tools needed only for building packages
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    build-essential \
+        python3 \
+        python3-pip \
+        python3-venv \
+        python3-dev \
+        ca-certificates \
+        build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy uv executable
