@@ -9,7 +9,7 @@ package-mode = false
 [tool.poetry.dependencies]
 python = "^3.14"
 python-telegram-bot = {version = "^22.8", extras = ["job-queue", "webhooks"]}
-pyrogram = "^2.0.106"
+kurigram = "^2.2.25"
 tgcrypto = "^1.2.5"
 uvloop = {version = "^0.22.1", platform = "linux"}
 sqlalchemy = "^2.0.52"
