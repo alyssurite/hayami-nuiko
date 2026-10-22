@@ -8,7 +8,7 @@ from urllib.parse import parse_qs, urlparse
 import structlog
 
 # psql exceptions
-from psycopg2.errors import UniqueViolation
+from psycopg.errors import UniqueViolation
 
 # pyrogram errors
 from pyrogram.errors import MessageDeleteForbidden, RPCError
