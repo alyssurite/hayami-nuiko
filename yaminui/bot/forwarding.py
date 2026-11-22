@@ -355,10 +355,6 @@ async def no_forwarding(
         match link.type:
             # twitter links
             case LinkType.TWITTER:
-                if len(art["links"]) > 10 and not com["order"]:
-                    log.info("No Forward: There's more than 10 artworks.")
-                    await pixiv_save(update, art)
-                    return
                 if data.reply:
                     await send_media(**com, style=data.twitter, above=link.above)
                 await send_media_doc(**com)

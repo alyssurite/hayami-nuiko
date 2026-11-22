@@ -32,7 +32,7 @@ from telegram.error import Forbidden
 from telegram.ext import ContextTypes, ConversationHandler
 
 # pixiv & twitter styles, link types
-from yaminui.api import LinkType, PixivStyle, TwitterStyle
+from yaminui.api import PixivStyle
 
 # bot state, results, user data, etc.
 from yaminui.bot import BotState, PostingResult, UserData, esc, pixiv_number, pyro_app
@@ -238,12 +238,6 @@ async def pixiv_post(
         "type": art["type"],
         "files": await extract_media_ids(art),
     }
-    if art["type"] == LinkType.TWITTER and len(art_dict["files"]) != len(art["links"]):
-        log.warning(
-            "Twitter files count mismatch: %d files extracted from %d links!",
-            len(art_dict["files"]),
-            len(art["links"]),
-        )
     post_dict = {
         "channel_id": data.chan,
         "is_original": False,
@@ -253,32 +247,24 @@ async def pixiv_post(
         notify(update, art=art)
         artwork = ArtWork(**art_dict)
         post_dict["is_original"] = True
-        log.info("Post: ArtWork to insert: %s.", art_dict)
+        log.info("Pixiv Post: ArtWork to insert: %s.", art_dict)
     else:
-        log.info("Post: Used ArtWork: %s.", art_dict)
-        if not artwork.files or len(artwork.files) < len(art_dict["files"]):
-            artwork.files = art_dict["files"]
-    is_twitter = art["type"] == LinkType.TWITTER
-    style = data.twitter if is_twitter else data.pixiv
+        log.info("Pixiv Post: Used ArtWork: %s.", art_dict)
     if data.forward:
         if posted := await send_media(
             context=context,
             info=art,
             order=ids,
-            style=style,
+            style=data.pixiv,
             chat_id=data.chan,
             above=above,
         ):
-            log.info("Post: Successfully posted to channel.")
-            if is_twitter:
-                if data.twitter != TwitterStyle.LINK:
-                    posted = posted[0]
-            else:
-                if data.pixiv not in (
-                    PixivStyle.INFO_LINK,
-                    PixivStyle.INFO_EMBED_LINK,
-                ):
-                    posted = posted[0]
+            log.info("Pixiv Post: Successfully posted to channel.")
+            if data.pixiv not in (
+                PixivStyle.INFO_LINK,
+                PixivStyle.INFO_EMBED_LINK,
+            ):
+                posted = posted[0]
             post_dict.update(
                 {
                     "post_id": posted.message_id,
@@ -287,50 +273,36 @@ async def pixiv_post(
             )
             try:
                 with Session.begin() as session:
-                    session.add(
-                        Post(
-                            **post_dict,
-                            artwork=session.merge(artwork) if artwork.id else artwork,
-                        )
-                    )
-                log.info("Post: Inserted Post: %s.", post_dict)
+                    session.add(Post(**post_dict, artwork=artwork))
+                log.info("Pixiv Post: Inserted Post: %s.", post_dict)
             except IntegrityError as err:
-                log.warning("Post: Integrity Error occured: %s", err)
+                log.warning("Pixiv Post: Integrity Error occured: %s", err)
                 if isinstance(err.orig, UniqueViolation):
-                    log.info("Post: Seems like artwork is already in database.")
+                    log.info("Pixiv Post: Seems like artwork is already in database.")
                     if not (artwork := await get_artwork(art["id"], art["type"])):
-                        log.error("Post: Failed to find artwork in database.")
+                        log.error("Pixiv Post: Failed to find artwork in database.")
                         log.error(
-                            "Post: Failed to insert ArtWork with Post: %s.",
+                            "Pixiv Post: Failed to insert ArtWork with Post: %s.",
                             post_dict,
                         )
                     else:
-                        if not artwork.files or len(artwork.files) < len(
-                            art_dict["files"]
-                        ):
-                            artwork.files = art_dict["files"]
                         log.info(
-                            "Post: Used already present ArtWork: [%d] %s.",
+                            "Pixiv Post: Used already present ArtWork: [%d] %s.",
                             artwork.id,
                             art_dict,
                         )
                         with Session.begin() as session:
-                            session.add(Post(**post_dict, artwork=session.merge(artwork)))
-                        log.info("Post: Inserted Post: %s.", post_dict)
+                            session.add(Post(**post_dict, artwork=artwork))
+                        log.info("Pixiv Post: Inserted Post: %s.", post_dict)
             if data.reply:
-                if not is_twitter:
-                    if data.pixiv not in (
-                        PixivStyle.INFO_LINK,
-                        PixivStyle.INFO_EMBED_LINK,
-                    ):
-                        await send_media(
-                            context=context,
-                            info=art,
-                            order=ids,
-                            style=data.pixiv,
-                            chat_id=update.effective_chat.id,
-                            reply_to_message_id=update.effective_message.message_id,
-                        )
+                await send_media(
+                    context=context,
+                    info=art,
+                    order=ids,
+                    style=data.pixiv,
+                    chat_id=update.effective_chat.id,
+                    reply_to_message_id=update.effective_message.message_id,
+                )
                 await send_reply_post(
                     update,
                     "posted",
@@ -338,18 +310,9 @@ async def pixiv_post(
                     posted.message_id,
                     art["link"],
                 )
-            if is_twitter and data.media and data.twitter == TwitterStyle.LINK:
-                await send_media_doc(
-                    context=context,
-                    info=art,
-                    media_filter=("video", "animated_gif", "ugoira"),
-                    channel_mode=True,
-                    chat_id=data.chan,
-                    reply_to_message_id=posted.message_id,
-                )
         else:
             await send_error(update, "Coudn't post\\!")
-            log.error("Post: Couldn't post.")
+            log.error("Pixiv Post: Couldn't post.")
             return PostingResult.STATE_ERROR
     else:
         if data.reply:
@@ -357,10 +320,9 @@ async def pixiv_post(
                 context=context,
                 info=art,
                 order=ids,
-                style=style,
+                style=data.pixiv,
                 chat_id=update.effective_chat.id,
                 reply_to_message_id=update.effective_message.message_id,
-                above=above,
             )
         await send_media_doc(
             context=context,

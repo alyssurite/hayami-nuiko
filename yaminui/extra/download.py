@@ -71,12 +71,12 @@ async def get_links(
     """
     # download in order if present
     if order:
-        return tuple(info["links"][index - 1] for index in order)
+        return (info["links"][index - 1] for index in order)
     # else download only 10 first files
     if len(info["links"]) > 10:
-        return tuple(info["links"][:10])
+        info["links"][:10]
     # else no special rules apply
-    return tuple(info["links"])
+    return info["links"]
 
 
 async def download_media(
@@ -104,7 +104,6 @@ async def download_media(
     idx = -1
     for link in await get_links(info, full=full, order=order):
         idx += 1
-        item_idx = order[idx] - 1 if order else idx
         media = await make_request(link, "GET", headers=headers)
         filename = await get_filename(link, media.content[:1024])
         log.debug("Filename: %r.", filename)
@@ -114,7 +113,7 @@ async def download_media(
                 info["type"] == LinkType.PIXIV
                 and info["media"] in ("illust", "manga")
                 or info["type"] == LinkType.TWITTER
-                and info["media"][item_idx] == "photo"
+                and info["media"][idx] == "photo"
             ):
                 file.seek(0)
                 image = await file_request(
