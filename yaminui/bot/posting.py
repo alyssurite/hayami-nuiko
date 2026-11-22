@@ -1,5 +1,7 @@
 """ "Posting functions module"""
 
+import time
+
 import structlog
 
 # sqlalchemy exceptions
@@ -62,6 +64,18 @@ log = structlog.get_logger(__name__)
 # banned from posting on their own
 ALERT_ID = int(bot_settings.alert_id)
 
+# readable names for posting results, e.g. 0 -> "STATE_POSTED"
+_RESULT_NAMES = {
+    value: name
+    for name, value in vars(PostingResult).items()
+    if name.startswith("STATE_")
+}
+
+
+def _state_name(result) -> str:
+    """Readable name of a posting result (for logs only)."""
+    return _RESULT_NAMES.get(result, repr(result))
+
 
 async def just_posting_twitter(
     update: Update,
@@ -70,10 +84,24 @@ async def just_posting_twitter(
     art: dict,
     link: Link,
 ) -> PostingResult:
+    plog = log.bind(
+        user_id=update.effective_user.id,
+        art_id=link.id,
+        art_type=str(link.type),
+        channel_id=data.chan,
+        links=len(art["links"]),
+        style=str(data.twitter),
+        above=link.above,
+    )
     if link.illust:
+        plog.info("Post: [twitter] specific selection requested.", illust=link.illust)
         data.info = art
         return await pixiv_post(update, context, data, link.illust, link.above)
     if len(art["links"]) == 1 or data.twitter == TwitterStyle.LINK:
+        plog.info(
+            "Post: [twitter] sending directly.",
+            reason="single image" if len(art["links"]) == 1 else "link style",
+        )
         if posts := await send_media(
             context=context,
             info=art,
@@ -81,19 +109,21 @@ async def just_posting_twitter(
             chat_id=data.chan,
             above=link.above,
         ):
-            log.info("Post: Successfully forwarded to channel.")
-            if data.twitter != TwitterStyle.LINK:
-                posted = posts[0]
+            plog.info(
+                "Post: Successfully forwarded to channel.",
+                messages=len(posts),
+            )
+            posted = posts[0]
             art_dict = {
                 "aid": link.id,
                 "type": link.type,
                 "files": await extract_media_ids(art),
             }
             if len(art_dict["files"]) != len(art["links"]):
-                log.warning(
-                    "Twitter files count mismatch: %d files extracted from %d links!",
-                    len(art_dict["files"]),
-                    len(art["links"]),
+                plog.warning(
+                    "Post: Twitter files count mismatch.",
+                    files=len(art_dict["files"]),
+                    links=len(art["links"]),
                 )
             post_dict = {
                 "channel_id": data.chan,
@@ -105,10 +135,16 @@ async def just_posting_twitter(
             if not (artwork := await get_artwork(link.id, link.type)):
                 artwork = ArtWork(**art_dict)
                 post_dict["is_original"] = True
-                log.info("Twitter Post: ArtWork to insert: %s.", art_dict)
+                plog.info("Post: [twitter] ArtWork to insert.", art_dict=art_dict)
             else:
-                log.info("Twitter Post: Used ArtWork: %s.", art_dict)
+                plog.info(
+                    "Post: [twitter] Used existing ArtWork.",
+                    artwork_id=artwork.id,
+                    stored_files=len(artwork.files or []),
+                    new_files=len(art_dict["files"]),
+                )
                 if not artwork.files or len(artwork.files) < len(art_dict["files"]):
+                    plog.info("Post: [twitter] Updating ArtWork files.")
                     artwork.files = art_dict["files"]
             try:
                 with Session.begin() as session:
@@ -118,15 +154,22 @@ async def just_posting_twitter(
                             artwork=session.merge(artwork) if artwork.id else artwork,
                         )
                     )
-            except IntegrityError:
+            except IntegrityError as exc:
                 posts_id = [post.message_id for post in posts]
-                log.info("Dublicate post detected!")
-                log.info("Deleting: <%d> %s...", data.chan, posts_id)
+                plog.warning(
+                    "Post: [twitter] Duplicate post detected!",
+                    error=str(getattr(exc, "orig", exc)),
+                )
+                plog.info("Post: [twitter] Deleting duplicate.", posts_id=posts_id)
                 deleted = [await post.delete() for post in posts]
                 if all(deleted):
-                    log.info("Deleted successfully.")
+                    plog.info("Post: [twitter] Deleted duplicate successfully.")
                 else:
-                    log.critical("Failed to delete.")
+                    plog.critical(
+                        "Post: [twitter] Failed to delete duplicate.",
+                        posts_id=posts_id,
+                        deleted=deleted,
+                    )
                     text = ", and ".join(
                         [
                             f"[here]({post.link})"
@@ -134,11 +177,16 @@ async def just_posting_twitter(
                             if not is_deleted
                         ]
                     )
-                    await send_error(f"Failed to delete double-post: {text}\\.")
-                return
-            log.info("Post: Inserted ArtWork: %s.", art_dict)
-            log.info("Post: Inserted Post: %s.", post_dict)
+                    await send_error(
+                        update,
+                        f"Failed to delete double-post: {text}\\.",
+                    )
+                plog.info("Post: [twitter] Aborted after duplicate.")
+                return PostingResult.STATE_ERROR
+            plog.info("Post: Inserted ArtWork.", art_dict=art_dict)
+            plog.info("Post: Inserted Post.", post_dict=post_dict)
             if data.reply:
+                plog.debug("Post: [twitter] Sending reply.")
                 await send_reply_post(
                     update,
                     "posted",
@@ -147,6 +195,7 @@ async def just_posting_twitter(
                     art["link"],
                 )
             if data.media and data.twitter == TwitterStyle.LINK:
+                plog.debug("Post: [twitter] Sending media docs to channel.")
                 await send_media_doc(
                     context=context,
                     info=art,
@@ -155,16 +204,28 @@ async def just_posting_twitter(
                     chat_id=data.chan,
                     reply_to_message_id=posted.message_id,
                 )
+            plog.info("Post: [twitter] finished.")
             return PostingResult.STATE_POSTED
+        plog.error("Post: [twitter] send_media returned nothing.")
         return PostingResult.STATE_ERROR
     elif len(art["links"]) > 1:
-        log.info("Post: There's more than 1 artwork.")
+        plog.info("Post: There's more than 1 artwork.")
         data.info = art
         if len(art["links"]) > 10:
+            plog.info(
+                "Post: [twitter] more than 10 images, selection required.",
+                max_auto=10,
+            )
             await pixiv_save(update, art)
             return PostingResult.STATE_CONTINUE
         else:
-            return await pixiv_post(update, context, data, "1-10", link.above)
+            selection = f"1-{len(art['links'])}"
+            plog.info(
+                "Post: [twitter] 10 images or fewer, posting all.",
+                selection=selection,
+            )
+            return await pixiv_post(update, context, data, selection, link.above)
+    plog.error("Post: [twitter] no images to post.", links=len(art["links"]))
     return PostingResult.STATE_ERROR
 
 
@@ -175,13 +236,27 @@ async def just_posting_pixiv(
     art: dict,
     link: Link,
 ) -> PostingResult:
+    plog = log.bind(
+        user_id=update.effective_user.id,
+        art_id=link.id,
+        art_type=str(link.type),
+        channel_id=data.chan,
+        links=len(art["links"]),
+        style=str(data.pixiv),
+        above=link.above,
+    )
     if link.illust:
+        plog.info("Post: [pixiv] specific selection requested.", illust=link.illust)
         data.info = art
         return await pixiv_post(update, context, data, link.illust, link.above)
     if len(art["links"]) == 1 or data.pixiv in (
         PixivStyle.INFO_LINK,
         PixivStyle.INFO_EMBED_LINK,
     ):
+        plog.info(
+            "Post: [pixiv] sending directly.",
+            reason="single image" if len(art["links"]) == 1 else "link style",
+        )
         if posts := await send_media(
             context=context,
             info=art,
@@ -189,12 +264,11 @@ async def just_posting_pixiv(
             chat_id=data.chan,
             above=link.above,
         ):
-            log.info("Post: Successfully forwarded to channel.")
-            if data.pixiv not in (
-                PixivStyle.INFO_LINK,
-                PixivStyle.INFO_EMBED_LINK,
-            ):
-                posted = posts[0]
+            plog.info(
+                "Post: Successfully forwarded to channel.",
+                messages=len(posts),
+            )
+            posted = posts[0]
             art_dict = {
                 "aid": link.id,
                 "type": link.type,
@@ -210,15 +284,22 @@ async def just_posting_pixiv(
             try:
                 with Session.begin() as session:
                     session.add(Post(**post_dict, artwork=ArtWork(**art_dict)))
-            except IntegrityError:
+            except IntegrityError as exc:
                 posts_id = [post.message_id for post in posts]
-                log.info("Dublicate post detected!")
-                log.info("Deleting: <%d> [%s]...", data.chan, posts_id)
-                deleted = [post.delete() for post in posts]
+                plog.warning(
+                    "Post: [pixiv] Duplicate post detected!",
+                    error=str(getattr(exc, "orig", exc)),
+                )
+                plog.info("Post: [pixiv] Deleting duplicate.", posts_id=posts_id)
+                deleted = [await post.delete() for post in posts]
                 if all(deleted):
-                    log.info("Deleted successfully.")
+                    plog.info("Post: [pixiv] Deleted duplicate successfully.")
                 else:
-                    log.critical("Failed to delete.")
+                    plog.critical(
+                        "Post: [pixiv] Failed to delete duplicate.",
+                        posts_id=posts_id,
+                        deleted=deleted,
+                    )
                     text = ", and ".join(
                         [
                             f"[here]({post.link})"
@@ -226,10 +307,16 @@ async def just_posting_pixiv(
                             if not is_deleted
                         ]
                     )
-                    await send_error(f"Failed to delete double-post: {text}\\.")
-            log.info("Post: Inserted ArtWork: %s.", art_dict)
-            log.info("Post: Inserted Post: %s.", post_dict)
+                    await send_error(
+                        update,
+                        f"Failed to delete double-post: {text}\\.",
+                    )
+                plog.info("Post: [pixiv] Aborted after duplicate.")
+                return PostingResult.STATE_ERROR
+            plog.info("Post: Inserted ArtWork.", art_dict=art_dict)
+            plog.info("Post: Inserted Post.", post_dict=post_dict)
             if data.reply:
+                plog.debug("Post: [pixiv] Sending reply.")
                 await send_media(
                     context=context,
                     info=art,
@@ -244,8 +331,11 @@ async def just_posting_pixiv(
                     posted.message_id,
                     art["link"],
                 )
+            plog.info("Post: [pixiv] finished.")
             return PostingResult.STATE_POSTED
+        plog.error("Post: [pixiv] send_media returned nothing.")
         return PostingResult.STATE_ERROR
+    plog.info("Post: [pixiv] multiple images, selection required.")
     await pixiv_save(update, art)
     return PostingResult.STATE_CONTINUE
 
@@ -257,25 +347,43 @@ async def just_posting(
     links: list[Link],
 ) -> None:
     notify(update, function="just_posting")
+    jlog = log.bind(user_id=update.effective_user.id, channel_id=data.chan)
+    jlog.info("Posting: started.", total_links=len(links))
     # process links
-    for link in links:
+    for index, link in enumerate(links, start=1):
+        started = time.perf_counter()
+        llog = jlog.bind(
+            link=link.link,
+            link_id=link.id,
+            link_type=str(link.type),
+            position=f"{index}/{len(links)}",
+        )
+        llog.debug("Post: processing link.", illust=link.illust, above=link.above)
         if await get_artwork(link.id, link.type):
+            llog.info("Post: ArtWork already exists in database.")
             if update.effective_user.id == ALERT_ID:
-                log.warning("Post: [ALERT] Content is not original: %r.", link.link)
+                llog.warning("Post: [ALERT] Content is not original.")
                 try_reposting = await answer_query_repost(update, context, data, link)
+                llog.debug(
+                    "Post: [ALERT] Repost attempt finished.",
+                    result=_state_name(try_reposting),
+                )
                 if try_reposting == PostingResult.STATE_REPOSTED:
-                    log.warning("Post: [ALERT] Reposted.")
+                    llog.warning("Post: [ALERT] Reposted.")
                 elif try_reposting == PostingResult.STATE_SELFREPOST:
-                    log.warning("Post: [ALERT] Can't self-repost.")
+                    llog.warning("Post: [ALERT] Can't self-repost.")
                 else:
                     try_posting = await answer_query_post(update, context, data, link)
                     if try_posting == PostingResult.STATE_POSTED:
-                        log.warning("Post: [ALERT] Posted.")
+                        llog.warning("Post: [ALERT] Posted.")
                     else:
-                        log.warning("Post: [ALERT] Unsuccessful.")
+                        llog.warning(
+                            "Post: [ALERT] Unsuccessful.",
+                            result=_state_name(try_posting),
+                        )
             else:
                 await send_warn(update, link)
-                log.warning("Post: Content is not original: %r.", link.link)
+                llog.warning("Post: Content is not original, skipped.")
             continue
         if not (art := await get_links(link)):
             await send_error(
@@ -283,10 +391,15 @@ async def just_posting(
                 f"[This content]({link.link}) can't be found or "
                 "downloaded\\. If this seems to be wrong, try again later\\.",
             )
-            log.error("Post: Couldn't get content: %r.", link.link)
+            llog.error("Post: Couldn't get content.")
             continue
         art = art._asdict()
         notify(update, art=art)
+        llog.debug(
+            "Post: content fetched.",
+            images=len(art["links"]),
+            art_link=art.get("link"),
+        )
         match link.type:
             # twitter links
             case LinkType.TWITTER:
@@ -294,6 +407,16 @@ async def just_posting(
             # pixiv links
             case LinkType.PIXIV:
                 result = await just_posting_pixiv(update, context, data, art, link)
+            case _:
+                llog.error("Post: unsupported link type, skipped.")
+                continue
+        llog.info(
+            "Post: link processed.",
+            result=_state_name(result),
+            elapsed=round(time.perf_counter() - started, 3),
+        )
         # upload to cloud
         if result == PostingResult.STATE_POSTED:
+            llog.debug("Post: uploading media to cloud.")
             await upload_media(art, update.effective_chat.id)
+            llog.debug("Post: media uploaded to cloud.")
