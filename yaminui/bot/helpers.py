@@ -1,6 +1,7 @@
 """Helpers module"""
 
 import re
+import time
 
 from datetime import datetime
 from typing import Optional
@@ -78,7 +79,15 @@ log = structlog.get_logger(__name__)
 
 async def check_if_owned(channel_id: int):
     with Session() as session:
-        return bool((chan := session.get(Channel, channel_id)) and chan.admin)
+        chan = session.get(Channel, channel_id)
+        owned = bool(chan and chan.admin)
+    log.debug(
+        "Ownership check done.",
+        channel_id=channel_id,
+        exists_in_db=chan is not None,
+        owned=owned,
+    )
+    return owned
 
 
 async def channel_check(
@@ -94,23 +103,30 @@ async def channel_check(
     Returns:
         Optional[int]: ConversationHandler state
     """
+    user_id = update.effective_chat.id
+    clog = log.bind(user_id=user_id)
+    clog.debug("Channel check started.")
     forward_origin = update.effective_message.forward_origin
     if not forward_origin:
         await send_error(update, "This message is not forwarded\\.")
-        log.error("Channel: This message is not forwarded.")
+        clog.info("Channel rejected: message is not forwarded.")
         return
     if forward_origin.type != MessageOrigin.CHANNEL:
         await send_error(update, "This message is not from channel\\.")
-        log.error("Channel: This message is not from channel.")
+        clog.info(
+            "Channel rejected: message is not from a channel.",
+            origin_type=str(forward_origin.type),
+        )
         return
     forward_origin_channel: MessageOriginChannel = forward_origin
     if not (channel := forward_origin_channel.chat):
         await send_error(update, "This channel is not available\\.")
-        log.error("Channel: This channel is not available.")
+        clog.warning("Channel rejected: forward origin has no chat info.")
         return
+    clog = clog.bind(channel_id=channel.id, channel_title=channel.title)
     if await check_if_owned(channel.id):
         await send_error(update, "This channel is *already* owned\\.")
-        log.error("Channel: [%s] is already owned.", channel.id)
+        clog.info("Channel rejected: already owned by another user.")
         return
     try:
         if not (bot := await channel.get_member(context.bot.id)):
@@ -118,27 +134,27 @@ async def channel_check(
                 update,
                 "The bot *is not a member* of this channel of this channel\\!",
             )
-            log.error("Channel: The bot is not a member of this channel.")
+            clog.warning("Channel rejected: bot is not a member.")
             return
     except Forbidden:
         await send_error(
             update,
             "The bot *was kicked* from this channel\\!",
         )
-        log.error("Channel: The bot was kicked from this channel.")
+        clog.warning("Channel rejected: bot was kicked from the channel.")
         return
     # done with basic checks
     await send_reply(
         update,
         "*Seems fine\\!* ✨\nChecking for *bot admin rights*\\.\\.\\.",
     )
-    log.info("Channel: [%s] passed basic checks. Checking admin rights...", channel.id)
+    clog.info("Channel passed basic checks, checking admin rights.")
     if bot.status != CMS.ADMINISTRATOR:
         await send_error(
             update,
             "The bot *is not an admin* of this channel\\!",
         )
-        log.error("Channel: The bot is not an admin of this channel.")
+        clog.warning("Channel rejected: bot is not an admin.", bot_status=str(bot.status))
         return
     bot_admin: ChatMemberAdministrator = bot
     if not bot_admin.can_post_messages:
@@ -146,7 +162,7 @@ async def channel_check(
             update,
             "The bot *can't post* in this channel\\!",
         )
-        log.error("Channel: The bot can't post in this channel.")
+        clog.warning("Channel rejected: bot admin lacks can_post_messages right.")
         return
     # done with admin bot checks
     if not (
@@ -157,7 +173,10 @@ async def channel_check(
             update,
             "You *are not an admin* of this channel\\!",
         )
-        log.error("Channel: The user is not an admin in this channel.")
+        clog.warning(
+            "Channel rejected: user is not an admin or owner of the channel.",
+            user_status=str(admin.status) if admin else None,
+        )
         return
     # done with admin bot checks
     await send_reply(
@@ -167,13 +186,15 @@ async def channel_check(
     # add channel to database
     with Session.begin() as session:
         # get current user
-        user = session.get(User, update.effective_chat.id)
+        user = session.get(User, user_id)
         # remove old channel
         if db_channel := session.get(Channel, channel.id):
             # channel already exist
+            clog.debug("Channel already in database, reattaching to user.")
             user.channel = db_channel
         else:
             # channel doesn't exist
+            clog.debug("Channel not in database, creating a new record.")
             user.channel = None
             # create new channel
             session.add(
@@ -191,7 +212,7 @@ async def channel_check(
         update,
         "*Done\\!* 🎉\n*Your channel* is added to the *database*\\!",
     )
-    log.info("Channel: [%s] successfully added to database.", channel.id)
+    clog.info("Channel successfully added to database.")
     del context.user_data[BotState.CHANNEL]
     return ConversationHandler.END
 
@@ -209,14 +230,20 @@ async def pixiv_save(update: Update, art: dict = None) -> None:
         user = session.get(User, user_id)
         if art is None:
             user.last_info = None
-            log.info("Pixiv Save: Deleted last info from user <%d>.", user_id)
+            log.debug("Pixiv Save: cleared last info.", user_id=user_id)
             return
         art["message_id"] = update.effective_message.message_id
         # JSON column can't store datetime objects — convert to ISO 8601 string
         if isinstance(art.get("date"), datetime):
             art["date"] = art["date"].isoformat()
         user.last_info = art
-        log.info("Pixiv Save: Added last info to user <%d>.", user_id)
+        log.info(
+            "Pixiv Save: stored last info.",
+            user_id=user_id,
+            art_id=art.get("id"),
+            art_type=str(art.get("type")),
+            links=len(art.get("links", [])),
+        )
     # prompt user to choose illustrations
     await send_reply(
         update,
@@ -233,9 +260,25 @@ async def pixiv_post(
     above: bool = False,
 ) -> None:
     notify(update, function="pixiv_post")
+    started = time.perf_counter()
     art = data.info
+    plog = log.bind(
+        user_id=update.effective_user.id,
+        art_id=art["id"],
+        art_type=str(art["type"]),
+        channel_id=data.chan,
+    )
+    plog.info(
+        "Post: started.",
+        forward=data.forward,
+        reply=data.reply,
+        above=above,
+        links=len(art["links"]),
+    )
     if not (ids := await normalize_order(update, text, len(art["links"]))):
+        plog.info("Post: aborted, no valid selection.", text=text)
         return PostingResult.STATE_ERROR
+    plog = plog.bind(order=list(ids))
     # save for reuse
     art_dict = {
         "aid": art["id"],
@@ -243,10 +286,10 @@ async def pixiv_post(
         "files": await extract_media_ids(art),
     }
     if art["type"] == LinkType.TWITTER and len(art_dict["files"]) != len(art["links"]):
-        log.warning(
-            "Twitter files count mismatch: %d files extracted from %d links!",
-            len(art_dict["files"]),
-            len(art["links"]),
+        plog.warning(
+            "Post: Twitter files count mismatch.",
+            files=len(art_dict["files"]),
+            links=len(art["links"]),
         )
     post_dict = {
         "channel_id": data.chan,
@@ -257,10 +300,17 @@ async def pixiv_post(
         notify(update, art=art)
         artwork = ArtWork(**art_dict)
         post_dict["is_original"] = True
-        log.info("Post: ArtWork to insert: %s.", art_dict)
+        plog.info("Post: new ArtWork, will insert.", files=len(art_dict["files"]))
+        plog.debug("Post: ArtWork payload.", art_dict=art_dict)
     else:
-        log.info("Post: Used ArtWork: %s.", art_dict)
+        plog.info(
+            "Post: reusing existing ArtWork.",
+            artwork_id=artwork.id,
+            known_files=len(artwork.files or []),
+            new_files=len(art_dict["files"]),
+        )
         if not artwork.files or len(artwork.files) < len(art_dict["files"]):
+            plog.debug("Post: updating ArtWork files with a more complete set.")
             artwork.files = art_dict["files"]
     is_twitter = art["type"] == LinkType.TWITTER
     style = data.twitter if is_twitter else data.pixiv
@@ -273,7 +323,7 @@ async def pixiv_post(
             chat_id=data.chan,
             above=above,
         ):
-            log.info("Post: Successfully posted to channel.")
+            plog.info("Post: sent to channel.")
             if is_twitter:
                 if data.twitter != TwitterStyle.LINK:
                     posted = posted[0]
@@ -297,30 +347,42 @@ async def pixiv_post(
                             artwork=session.merge(artwork) if artwork.id else artwork,
                         )
                     )
-                log.info("Post: Inserted Post: %s.", post_dict)
+                plog.info("Post: inserted Post record.", post_dict=post_dict)
             except IntegrityError as err:
-                log.warning("Post: Integrity Error occured: %s", err)
+                plog.warning(
+                    "Post: integrity error on insert.",
+                    error=str(err.orig),
+                    unique_violation=isinstance(err.orig, UniqueViolation),
+                )
                 if isinstance(err.orig, UniqueViolation):
-                    log.info("Post: Seems like artwork is already in database.")
+                    plog.info("Post: ArtWork was inserted concurrently, retrying.")
                     if not (artwork := await get_artwork(art["id"], art["type"])):
-                        log.error("Post: Failed to find artwork in database.")
-                        log.error(
-                            "Post: Failed to insert ArtWork with Post: %s.",
-                            post_dict,
+                        # unique violation but the row is gone: inconsistent state
+                        plog.error(
+                            "Post: unique violation, but ArtWork can't be found. "
+                            "Post is in the channel, but not in the database.",
+                            post_dict=post_dict,
                         )
                     else:
                         if not artwork.files or len(artwork.files) < len(
                             art_dict["files"]
                         ):
                             artwork.files = art_dict["files"]
-                        log.info(
-                            "Post: Used already present ArtWork: [%d] %s.",
-                            artwork.id,
-                            art_dict,
+                        plog.info(
+                            "Post: using already present ArtWork.",
+                            artwork_id=artwork.id,
                         )
                         with Session.begin() as session:
                             session.add(Post(**post_dict, artwork=session.merge(artwork)))
-                        log.info("Post: Inserted Post: %s.", post_dict)
+                        plog.info(
+                            "Post: inserted Post record on retry.",
+                            post_dict=post_dict,
+                        )
+                else:
+                    plog.warning(
+                        "Post: not a unique violation, Post record not saved.",
+                        post_dict=post_dict,
+                    )
             if data.reply:
                 if not is_twitter:
                     if data.pixiv not in (
@@ -353,9 +415,10 @@ async def pixiv_post(
                 )
         else:
             await send_error(update, "Coudn't post\\!")
-            log.error("Post: Couldn't post.")
+            plog.warning("Post: send_media returned nothing, couldn't post to channel.")
             return PostingResult.STATE_ERROR
     else:
+        plog.debug("Post: forwarding disabled, replying only to the user.")
         if data.reply:
             await send_media(
                 context=context,
@@ -376,7 +439,13 @@ async def pixiv_post(
     # clean last_info for user
     await pixiv_save(update)
     # upload to cloud
+    plog.debug("Post: uploading media to cloud.")
     await upload_media(art, update.effective_chat.id, ids)
+    plog.info(
+        "Post: finished.",
+        is_original=post_dict["is_original"],
+        elapsed=round(time.perf_counter() - started, 3),
+    )
     return PostingResult.STATE_POSTED
 
 
@@ -388,7 +457,9 @@ async def normalize_order(
 ) -> tuple[int]:
     ids = []
     if not (text and count):
+        log.debug("Normalize Order: nothing to parse.", has_text=bool(text), count=count)
         return tuple(ids)
+    log.debug("Normalize Order: parsing.", text=text, count=count, max_amount=max_amount)
     for number in re.finditer(pixiv_number, text):
         n1 = int(number.group("n1"))
         if n2 := number.group("n2"):
@@ -400,13 +471,25 @@ async def normalize_order(
         else:
             ids += range(n1, n2 + 1)
     ids = list(dict.fromkeys(ids))  # can't use set() because of order
+    if not ids:
+        log.info("Normalize Order: no numbers found in text.", text=text)
+        await send_error(
+            update,
+            f"No numbers found, expected range: \\[`1`\\-`{count}`\\]\\!",
+        )
+        return tuple()
     # check if all numbers within range
     if max(ids) > count or min(ids) < 1:
         await send_error(
             update,
             f"*Not within* range: \\[`1`\\-`{count}`\\]\\!",
         )
-        log.error("Normalize Order: Not within range [1-%s].", count)
+        log.info(
+            "Normalize Order: selection out of range.",
+            ids=ids,
+            allowed_min=1,
+            allowed_max=count,
+        )
         return tuple()
         # return tuple(filter(lambda x: 1 <= x <= count, ids))[:max_amount]
     # check if there's more than 10 numbers
@@ -415,10 +498,14 @@ async def normalize_order(
             update,
             f"You *can't* choose more than {max_amount} files\\!",
         )
-        log.error("Normalize Order: More than %s files.", max_amount)
+        log.info(
+            "Normalize Order: too many files selected.",
+            selected=len(ids),
+            max_amount=max_amount,
+        )
         return tuple()
         # return tuple(ids[:max_amount])
-    log.info("Normalize Order: Result: %s.", ids)
+    log.info("Normalize Order: parsed selection.", ids=ids)
     return tuple(ids)
 
 
@@ -443,8 +530,10 @@ TG_LINK_REGEX = re.compile(r"tg://(?:(?:resolve\?)|(?:privatepost\?))")
 
 
 async def check_post(update: Update, args: list[str]):
+    user_id = update.effective_user.id
+    clog = log.bind(user_id=user_id)
     if not args:
-        log.error("No info to get info about.")
+        clog.info("Check Post: no arguments provided.")
         await send_error(
             update,
             "No info to get info about\\. You need to provide a link "
@@ -452,31 +541,38 @@ async def check_post(update: Update, args: list[str]):
             "`/info https://t.me/ura_kartinki/12991`",
         )
         return
+    clog.debug("Check Post: started.", args=args)
     for arg in args:
         earg = esc(arg)
+        post_id = None
+        channel = None
         if match := re.search(HTTP_LINK_REGEX, arg):
             # http://t.me/c/1183548293/60363
             # https://t.me/denkou/60363
-            log.info("Found http post link: %s.", arg)
+            clog.info("Check Post: found http post link.", arg=arg)
             post_id = int(match.group("post"))
             if not (
                 channel_link := match.group("channel_id") or match.group("channel_link")
             ):
-                log.error("No channel info found in link!")
+                clog.warning("Check Post: no channel info found in link.", arg=arg)
                 await send_error(update, f"No channel info found in link: {earg}")
                 continue
             channel = await get_channel_by_link(channel_link)
         elif match := re.search(TG_LINK_REGEX, arg):
             # tg://resolve?domain=denkou&post=60363
             # tg://privatepost?channel=1183548293&post=60363
-            log.info("Found tg post link: %s.", arg)
+            clog.info("Check Post: found tg post link.", arg=arg)
             url = urlparse(arg)
             query = parse_qs(url.query)
             if post_id := query.get("post"):
                 try:
                     post_id = int(post_id[0])
                 except ValueError:
-                    log.warning("Couldn't convert to integer.")
+                    clog.info(
+                        "Check Post: post id in tg link is not an integer.",
+                        arg=arg,
+                        post_id=post_id[0],
+                    )
                     await send_error(
                         update, f"Couldn't convert post id to integer: {earg}"
                     )
@@ -484,17 +580,15 @@ async def check_post(update: Update, args: list[str]):
             if channel_link := query.get("domain") or query.get("channel"):
                 channel = await get_channel_by_link(channel_link[0])
         else:
-            log.info("Doesn't look like link: %s.", arg)
-            log.info("Assuming it's post id.")
-            log.info("Trying to convert to integer...")
+            clog.debug("Check Post: not a link, assuming post id.", arg=arg)
             try:
                 post_id = int(arg)
             except ValueError:
-                log.warning("Couldn't convert to integer.")
-                log.error("Unknown type of argument.")
+                clog.info("Check Post: unknown type of argument.", arg=arg)
                 await send_error(update, f"Unknown type of argument: {earg}")
                 continue
-            if not (channel := await get_user_channel(update.effective_user.id)):
+            if not (channel := await get_user_channel(user_id)):
+                clog.info("Check Post: user has no channel attached.", arg=arg)
                 await send_error(
                     update,
                     "Assumed you have channel attached, but none found\\. "
@@ -503,50 +597,56 @@ async def check_post(update: Update, args: list[str]):
                 continue
         if not (post_id and channel):
             if not post_id:
-                log.error("Couldn't get post id!")
+                clog.info("Check Post: couldn't get post id.", arg=arg)
                 await send_error(update, f"Couldn't get post id: {earg}")
             if not channel:
-                log.error("Couldn't get channel info!")
+                clog.info("Check Post: couldn't get channel info.", arg=arg)
                 await send_error(update, f"Couldn't get channel info: {earg}")
             continue
-        log.info("Got info: [ %d | %d ].", channel.id, post_id)
+        clog.debug("Check Post: resolved.", channel_id=channel.id, post_id=post_id)
         if not (post := await get_post_by_uix_post(channel.id, post_id)):
+            clog.info(
+                "Check Post: no post found.", channel_id=channel.id, post_id=post_id
+            )
             await send_error(
                 update,
                 "No post found\\! Please send the link to the first picture\\.",
             )
             continue
+        clog.debug("Check Post: post found.", post_record_id=post.id)
         yield post
     return
 
 
 async def delete_post_from_everywhere(post_record_id: int, user_id: int):
+    """Deletes post from database and from its channel
+
+    Returns:
+        int: 0 - success, 1 - post not found, 2 - channel deletion failed,
+        3 - channel not found or not owned by the user
+    """
+    started = time.perf_counter()
+    dlog = log.bind(post_record_id=post_record_id, user_id=user_id)
+    dlog.info("Delete Post: started.")
     if not (post := await get_post(post_record_id)):
-        log.error(
-            "[%d | %d] Post wasn't found.",
-            post_record_id,
-            user_id,
-        )
+        dlog.info("Delete Post: post wasn't found.")
         return 1
+    dlog = dlog.bind(channel_id=post.channel_id, post_id=post.post_id)
     if not (channel := await get_user_channel(user_id)):
-        log.error(
-            "[%d | %d] Channel for user wasn't found.",
-            post_record_id,
-            user_id,
-        )
+        dlog.warning("Delete Post: user has no channel attached.")
         return 3
     if channel.id != post.channel_id:
-        log.error(
-            "[%d | %d] User's channel is different: [%d].",
-            post_record_id,
-            user_id,
-            channel.id,
+        # a user trying to delete a post from somebody else's channel
+        dlog.warning(
+            "Delete Post: post belongs to a different channel than user's.",
+            user_channel_id=channel.id,
         )
         return 3
     messages: list[Message] = await pyro_app.get_messages(
         post.channel_id,
         range(post.post_id, post.post_id + 10),
     )
+    dlog.debug("Delete Post: fetched messages.", fetched=len(messages))
     delete_messages = []
     media_group_id = 0
     for message in messages:
@@ -567,25 +667,44 @@ async def delete_post_from_everywhere(post_record_id: int, user_id: int):
             continue
         # stop if no more images are in media group
         break
+    dlog.debug(
+        "Delete Post: resolved messages to delete.",
+        message_ids=delete_messages,
+        media_group_id=media_group_id or None,
+    )
     # delete from db
-    log.info("Deleting post from database...")
     with Session.begin() as session:
         session.delete(post)
-    log.info("Deleted post from database.")
+    dlog.info("Delete Post: deleted from database.")
 
     # delete from channel
-    log.info("Deleting posts %s from channel...", delete_messages)
     try:
         affected = await pyro_app.delete_messages(post.channel_id, delete_messages)
-        log.info("Deleted posts from channel.")
-        if affected == len(delete_messages):
-            log.info("Affected check succeeded: %d.", affected)
-        else:
-            log.error("Affected check failed: %d != %d.", affected, len(delete_messages))
     except MessageDeleteForbidden:
-        log.error("The bot can't delete this post!")
+        dlog.warning(
+            "Delete Post: bot isn't allowed to delete messages in the channel. "
+            "Record is removed from database, but messages remain in the channel.",
+            message_ids=delete_messages,
+        )
         return 2
     except RPCError as error:
-        log.error("Some shit happened. %s.", error)
+        # unexpected telegram failure, database and channel are now out of sync
+        dlog.error(
+            "Delete Post: telegram error while deleting. "
+            "Record is removed from database, but messages may remain in the channel.",
+            message_ids=delete_messages,
+            error=repr(error),
+            exc_info=True,
+        )
         return 2
+    if affected == len(delete_messages):
+        dlog.info("Delete Post: deleted from channel.", deleted=affected)
+    else:
+        dlog.warning(
+            "Delete Post: deleted fewer messages than requested.",
+            deleted=affected,
+            requested=len(delete_messages),
+            message_ids=delete_messages,
+        )
+    dlog.info("Delete Post: finished.", elapsed=round(time.perf_counter() - started, 3))
     return 0
