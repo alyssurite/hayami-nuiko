@@ -47,7 +47,6 @@ from yaminui.bot.filters import clear_context
 # bot posting
 from yaminui.bot.helpers import (
     delete_post_from_everywhere,
-    normalize_order,
     pixiv_post,
     pixiv_save,
 )
@@ -144,46 +143,56 @@ async def answer_query_twitter(
     illust: str = None,
     above: bool = False,
 ):
-    if posted := await send_media(
-        context=context,
-        info=art,
-        style=data.twitter,
-        chat_id=data.chan,
-        order=(
-            await normalize_order(update, illust, len(art["links"])) if illust else None
-        ),
-        above=above,
-    ):
-        log.info("Query Post Twitter: Successfully posted to channel.")
-        if data.twitter != TwitterStyle.LINK:
-            posted = posted[0]
-        post_dict.update(
-            {
-                "post_id": posted.message_id,
-                "post_date": posted.date,
-            }
-        )
-        with Session.begin() as session:
-            session.add(Post(**post_dict))
-        log.info("Query Post Twitter: Inserted Post: %s.", post_dict)
-        if data.reply:
-            await send_reply_post(
-                update,
-                "posted",
-                data.chan,
-                posted.message_id,
-                art["link"],
+    if illust:
+        data.info = art
+        return await pixiv_post(update, context, data, illust, above)
+    if len(art["links"]) == 1 or data.twitter == TwitterStyle.LINK:
+        if posted := await send_media(
+            context=context,
+            info=art,
+            style=data.twitter,
+            chat_id=data.chan,
+            above=above,
+        ):
+            log.info("Query Post Twitter: Successfully posted to channel.")
+            if data.twitter != TwitterStyle.LINK:
+                posted = posted[0]
+            post_dict.update(
+                {
+                    "post_id": posted.message_id,
+                    "post_date": posted.date,
+                }
             )
-        if data.media and data.twitter == TwitterStyle.LINK:
-            await send_media_doc(
-                context=context,
-                info=art,
-                media_filter=("video", "animated_gif", "ugoira"),
-                channel_mode=True,
-                chat_id=data.chan,
-                reply_to_message_id=posted.message_id,
-            )
-        return PostingResult.STATE_POSTED
+            with Session.begin() as session:
+                session.add(Post(**post_dict))
+            log.info("Query Post Twitter: Inserted Post: %s.", post_dict)
+            if data.reply:
+                await send_reply_post(
+                    update,
+                    "posted",
+                    data.chan,
+                    posted.message_id,
+                    art["link"],
+                )
+            if data.media and data.twitter == TwitterStyle.LINK:
+                await send_media_doc(
+                    context=context,
+                    info=art,
+                    media_filter=("video", "animated_gif", "ugoira"),
+                    channel_mode=True,
+                    chat_id=data.chan,
+                    reply_to_message_id=posted.message_id,
+                )
+            return PostingResult.STATE_POSTED
+        return PostingResult.STATE_ERROR
+    elif len(art["links"]) > 1:
+        log.info("Query Post Twitter: There's more than 1 artwork.")
+        data.info = art
+        if len(art["links"]) > 10:
+            await pixiv_save(update, art)
+            return PostingResult.STATE_CONTINUE
+        else:
+            return await pixiv_post(update, context, data, "1-10", above)
     return PostingResult.STATE_ERROR
 
 
