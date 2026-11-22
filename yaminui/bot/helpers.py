@@ -2,6 +2,7 @@
 
 import re
 
+from datetime import datetime
 from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
@@ -211,6 +212,9 @@ async def pixiv_save(update: Update, art: dict = None) -> None:
             log.info("Pixiv Save: Deleted last info from user <%d>.", user_id)
             return
         art["message_id"] = update.effective_message.message_id
+        # JSON column can't store datetime objects — convert to ISO 8601 string
+        if isinstance(art.get("date"), datetime):
+            art["date"] = art["date"].isoformat()
         user.last_info = art
         log.info("Pixiv Save: Added last info to user <%d>.", user_id)
     # prompt user to choose illustrations
