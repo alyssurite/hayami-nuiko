@@ -121,6 +121,7 @@ async def download_media(
                     UPLOAD_LINKS["resizer"],
                     "POST",
                     timeout=120,
+                    params={"to_ext": "jpeg"},
                     files={"upload_file": file.read()},
                 )
                 file.seek(0)
