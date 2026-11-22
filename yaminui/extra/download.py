@@ -116,18 +116,30 @@ async def download_media(
                 or info["type"] == LinkType.TWITTER
                 and info["media"][item_idx] == "photo"
             ):
-                file.seek(0)
-                image = await file_request(
-                    UPLOAD_LINKS["resizer"],
-                    "POST",
-                    timeout=120,
-                    params={"to_ext": "jpeg"},
-                    files={"upload_file": file.read()},
-                )
-                file.seek(0)
-                file.truncate()
-                file.write(image)
-                # resizer always returns JPEG — update filename to match
-                filename = re.sub(r"\.[a-z]{2,4}$", ".jpeg", filename)
+                try:
+                    file.seek(0)
+                    image = await file_request(
+                        UPLOAD_LINKS["resizer"],
+                        "POST",
+                        timeout=120,
+                        params={"to_ext": "jpeg"},
+                        files={"upload_file": file.read()},
+                    )
+                    # validate resizer actually returned a JPEG (magic bytes \xff\xd8\xff)
+                    if image[:3] == b"\xff\xd8\xff":
+                        file.seek(0)
+                        file.truncate()
+                        file.write(image)
+                        # resizer always returns JPEG — update filename to match
+                        filename = re.sub(r"\.[a-z]{2,4}$", ".jpeg", filename)
+                    else:
+                        log.warning(
+                            "Resizer returned non-JPEG data (%d bytes, starts %r), "
+                            "using original content.",
+                            len(image),
+                            image[:16],
+                        )
+                except Exception as exc:
+                    log.warning("Resizer failed (%r), using original content.", exc)
             file.seek(0)
             yield (filename, file)
