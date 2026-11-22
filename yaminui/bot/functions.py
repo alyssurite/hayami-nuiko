@@ -51,7 +51,7 @@ from yaminui.db.updaters import update_chat
 log = structlog.get_logger(__name__)
 
 # pixiv regex
-pixiv_regex = re.compile(r"^((?:\d+)(?:-\d+)?[.,\s]*){1,10}(?P<above>\!)?$")
+pixiv_regex = re.compile(r"^((?:\d+)(?:-\d+)?[.,\s]*)+(?P<above>\!)?$")
 
 # update queue limiter
 queue = asyncio.Queue(QUEUE_SIZE)

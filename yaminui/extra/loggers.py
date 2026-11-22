@@ -151,18 +151,15 @@ logging.config.dictConfig(
         "handlers": HANDLERS,
         "loggers": {
             "": {
-                "handlers": (
-                    [
+                "handlers": [
+                    h
+                    for h in [
                         CONSOLE_HANDLER if sys.stderr.isatty() else JSONFORMAT_HANDLER,
-                        "file_handler",
-                        "logtail_handler",
+                        "file_handler" if FILE_HANDLER else None,
+                        "logtail_handler" if LOGTAIL_HANDLER else None,
                     ]
-                    if FILE_HANDLER
-                    else [
-                        CONSOLE_HANDLER if sys.stderr.isatty() else JSONFORMAT_HANDLER,
-                        "logtail_handler",
-                    ]
-                ),
+                    if h
+                ],
                 "level": log_settings.root.level,
                 "propagate": True,
             }

@@ -24,7 +24,7 @@ from yaminui.bot import PostingResult, UserData
 from yaminui.bot.answer_query import answer_query_post, answer_query_repost
 
 # bot helpers
-from yaminui.bot.helpers import normalize_order, pixiv_post, pixiv_save
+from yaminui.bot.helpers import pixiv_post, pixiv_save
 
 # bot loggers
 from yaminui.bot.loggers import notify
@@ -70,74 +70,101 @@ async def just_posting_twitter(
     art: dict,
     link: Link,
 ) -> PostingResult:
-    if posts := await send_media(
-        context=context,
-        info=art,
-        style=data.twitter,
-        chat_id=data.chan,
-        order=(
-            await normalize_order(update, link.illust, len(art["links"]))
-            if link.illust
-            else None
-        ),
-        above=link.above,
-    ):
-        log.info("Post: Successfully forwarded to channel.")
-        if data.twitter != TwitterStyle.LINK:
-            posted = posts[0]
-        art_dict = {
-            "aid": link.id,
-            "type": link.type,
-            "files": await extract_media_ids(art),
-        }
-        post_dict = {
-            "channel_id": data.chan,
-            "is_original": True,
-            "is_forwarded": False,
-            "post_id": posted.message_id,
-            "post_date": posted.date,
-        }
-        try:
-            with Session.begin() as session:
-                session.add(Post(**post_dict, artwork=ArtWork(**art_dict)))
-        except IntegrityError:
-            posts_id = [post.message_id for post in posts]
-            log.info("Dublicate post detected!")
-            log.info("Deleting: <%d> %s...", data.chan, posts_id)
-            deleted = [await post.delete() for post in posts]
-            if all(deleted):
-                log.info("Deleted successfully.")
-            else:
-                log.critical("Failed to delete.")
-                text = ", and ".join(
-                    [
-                        f"[here]({post.link})"
-                        for post, is_deleted in zip(posts, deleted, strict=True)
-                        if not is_deleted
-                    ]
+    if link.illust:
+        data.info = art
+        return await pixiv_post(update, context, data, link.illust, link.above)
+    if len(art["links"]) == 1 or data.twitter == TwitterStyle.LINK:
+        if posts := await send_media(
+            context=context,
+            info=art,
+            style=data.twitter,
+            chat_id=data.chan,
+            above=link.above,
+        ):
+            log.info("Post: Successfully forwarded to channel.")
+            if data.twitter != TwitterStyle.LINK:
+                posted = posts[0]
+            art_dict = {
+                "aid": link.id,
+                "type": link.type,
+                "files": await extract_media_ids(art),
+            }
+            if len(art_dict["files"]) != len(art["links"]):
+                log.warning(
+                    "Twitter files count mismatch: %d files extracted from %d links!",
+                    len(art_dict["files"]),
+                    len(art["links"]),
                 )
-                await send_error(f"Failed to delete double-post: {text}\\.")
-            return
-        log.info("Post: Inserted ArtWork: %s.", art_dict)
-        log.info("Post: Inserted Post: %s.", post_dict)
-        if data.reply:
-            await send_reply_post(
-                update,
-                "posted",
-                data.chan,
-                posted.message_id,
-                art["link"],
-            )
-        if data.media and data.twitter == TwitterStyle.LINK:
-            await send_media_doc(
-                context=context,
-                info=art,
-                media_filter=("video", "animated_gif", "ugoira"),
-                channel_mode=True,
-                chat_id=data.chan,
-                reply_to_message_id=posted.message_id,
-            )
-        return PostingResult.STATE_POSTED
+            post_dict = {
+                "channel_id": data.chan,
+                "is_original": True,
+                "is_forwarded": False,
+                "post_id": posted.message_id,
+                "post_date": posted.date,
+            }
+            if not (artwork := await get_artwork(link.id, link.type)):
+                artwork = ArtWork(**art_dict)
+                post_dict["is_original"] = True
+                log.info("Twitter Post: ArtWork to insert: %s.", art_dict)
+            else:
+                log.info("Twitter Post: Used ArtWork: %s.", art_dict)
+                if not artwork.files or len(artwork.files) < len(art_dict["files"]):
+                    artwork.files = art_dict["files"]
+            try:
+                with Session.begin() as session:
+                    session.add(
+                        Post(
+                            **post_dict,
+                            artwork=session.merge(artwork) if artwork.id else artwork,
+                        )
+                    )
+            except IntegrityError:
+                posts_id = [post.message_id for post in posts]
+                log.info("Dublicate post detected!")
+                log.info("Deleting: <%d> %s...", data.chan, posts_id)
+                deleted = [await post.delete() for post in posts]
+                if all(deleted):
+                    log.info("Deleted successfully.")
+                else:
+                    log.critical("Failed to delete.")
+                    text = ", and ".join(
+                        [
+                            f"[here]({post.link})"
+                            for post, is_deleted in zip(posts, deleted, strict=True)
+                            if not is_deleted
+                        ]
+                    )
+                    await send_error(f"Failed to delete double-post: {text}\\.")
+                return
+            log.info("Post: Inserted ArtWork: %s.", art_dict)
+            log.info("Post: Inserted Post: %s.", post_dict)
+            if data.reply:
+                await send_reply_post(
+                    update,
+                    "posted",
+                    data.chan,
+                    posted.message_id,
+                    art["link"],
+                )
+            if data.media and data.twitter == TwitterStyle.LINK:
+                await send_media_doc(
+                    context=context,
+                    info=art,
+                    media_filter=("video", "animated_gif", "ugoira"),
+                    channel_mode=True,
+                    chat_id=data.chan,
+                    reply_to_message_id=posted.message_id,
+                )
+            return PostingResult.STATE_POSTED
+        return PostingResult.STATE_ERROR
+    elif len(art["links"]) > 1:
+        log.info("Post: There's more than 1 artwork.")
+        data.info = art
+        if len(art["links"]) > 10:
+            await pixiv_save(update, art)
+            return PostingResult.STATE_CONTINUE
+        else:
+            return await pixiv_post(update, context, data, "1-10", link.above)
     return PostingResult.STATE_ERROR
 
 

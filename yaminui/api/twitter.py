@@ -247,7 +247,11 @@ async def get_from_twimg_api(tweet_id: int) -> Optional[Tweet]:
                     tcourl=url["url"],
                     indices=url["indices"],
                 )
-                for url in tweet_info["entities"]["media"]
+                for url in (
+                    tweet_info.get("entities", {}).get("urls")
+                    or tweet_info.get("entities", {}).get("media")
+                    or []
+                )
             ]
             or None,
             quotedTweet=quote_info,
@@ -312,7 +316,10 @@ async def get_from_twitter_api(tweet_id: int) -> Optional[Tweet]:
         if not (tweet_info := data.get("legacy", None)):
             log.warning("Scraping failed.")
             return
-        if not (tweet_info["entities"].get("media", None)):
+        if not (
+            tweet_info.get("extended_entities", {}).get("media")
+            or tweet_info.get("entities", {}).get("media")
+        ):
             log.warning("No media.")
             return
         quote_info = None
@@ -333,7 +340,9 @@ async def get_from_twitter_api(tweet_id: int) -> Optional[Tweet]:
                 conversationId=qinfo["conversation_id_str"],
                 lang=qinfo["lang"],
             )
-        media_info = tweet_info["extended_entities"]["media"]
+        media_info = tweet_info.get("extended_entities", {}).get(
+            "media"
+        ) or tweet_info.get("entities", {}).get("media", [])
         user = data["core"]["user_results"]["result"]["legacy"]
         return Tweet(
             url=TWI["link"].format(

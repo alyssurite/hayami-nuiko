@@ -444,11 +444,12 @@ async def send_media(
     idx, media = -1, []
     async for filename, file in download_media(info, full=False, order=order):
         idx += 1
+        item_idx = order[idx] - 1 if order else idx
         if (
             info["type"] == LinkType.PIXIV
             and info["media"] in ("illust", "manga")
             or info["type"] == LinkType.TWITTER
-            and info["media"][idx] == "photo"
+            and info["media"][item_idx] == "photo"
         ):
             media.append(
                 InputMediaPhoto(
@@ -537,11 +538,12 @@ async def send_media_doc(
     async for filename, file in download_media(filtered_info, order=order):
         if channel_mode:
             idx += 1
+            item_idx = order[idx] - 1 if order else idx
             if (
                 filtered_info["type"] == LinkType.PIXIV
                 and filtered_info["media"] in ("illust", "manga")
                 or filtered_info["type"] == LinkType.TWITTER
-                and filtered_info["media"][idx] == "photo"
+                and filtered_info["media"][item_idx] == "photo"
             ):
                 documents.append(
                     InputMediaPhoto(

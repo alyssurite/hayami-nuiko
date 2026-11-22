@@ -59,11 +59,24 @@ async def get_links(media: Link) -> ArtWorkMedia:
 async def extract_media_ids(art: dict) -> list[str]:
     match art["type"]:
         case LinkType.TWITTER:
-            return [re.search(tw_regex, link)["id"] for link in art["links"]]
+            ids = []
+            for link in art["links"]:
+                if m := re.search(tw_regex, link):
+                    ids.append(m.group("id"))
+                else:
+                    clean = link.split("?")[0].rsplit("/", 1)[-1].split(".")[0]
+                    ids.append(clean)
+            if len(ids) != len(art["links"]):
+                log.warning(
+                    "extract_media_ids: extracted %d IDs for %d links!",
+                    len(ids),
+                    len(art["links"]),
+                )
+            return ids
         case LinkType.PIXIV:
             return [str(art["id"])]
         case _:
-            return
+            return []
 
 
 async def formatter(query: str) -> list[Link]:
